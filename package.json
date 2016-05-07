@@ -4,6 +4,7 @@
   "description": "This is the coding exercise we give to all potential front-end team members. It consists of a few parts. Instructions are below.",
   "main": "index.js",
   "dependencies": {
+    "axios": "^0.11.0",
     "body-parser": "^1.15.0",
     "cors": "^2.7.1",
     "express": "^4.13.4",
