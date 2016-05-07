@@ -1,32 +1,78 @@
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 
+import {bindActionCreators} from 'redux';
+import {connect} from 'react-redux'
 import reducers from './reducers/index.js';
 
 let store = createStore(reducers);
 
 // import searchBar
 import List from './list/listComponent.js';
-// import documentDisplay
+import DocumentDisplay from './documentDisplay/documentDisplayComponent.js'
+
 import axios from 'axios';
 
 
 
 const App = React.createClass({
-
   componentDidMount() {
     axios.get('/reports').then( (data) => {
-      this.setState({reports: data});
+      this.props.receiveReports(data.data);
     });
   },
   render() {
-    return <div> nothing to see yet </div>
+    return (
+      <div className='appView'>
+        <header>
+          <input className="filter" /> filter and stuff here
+        </header>
+
+        <div>
+
+          <List className="listOfReports" />
+
+          <DocumentDisplay className="documentDisplay" />
+
+        </div>
+
+      </div>
+      );
     }
 });
 
+
+
+
+function mapStateToProps (reduxState) {
+  return {
+    reports: reduxState.reports
+  };
+}
+
+function receiveReports (reportsArr) {
+  return {
+    payload: reportsArr,
+    type: 'receiveReports'
+  };
+}
+
+function mapDispatchToProps (dispatch) {
+  return bindActionCreators({
+    receiveReports: receiveReports
+  }, dispatch );
+}
+
+const ConnectedApp = connect(mapStateToProps, mapDispatchToProps)(App);
+
 ReactDOM.render(
   <Provider store={store}>
-    <App />
+    <ConnectedApp />
   </Provider>,
   document.getElementById('app')
 );
+
+// ReactDOM.render(
+//   <App />,
+//   document.getElementById('app')
+// );

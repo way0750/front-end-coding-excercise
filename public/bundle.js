@@ -6097,6 +6097,10 @@ var _listComponent = require('./list/listComponent.js');
 
 var _listComponent2 = _interopRequireDefault(_listComponent);
 
+var _documentDisplayComponent = require('./documentDisplay/documentDisplayComponent.js');
+
+var _documentDisplayComponent2 = _interopRequireDefault(_documentDisplayComponent);
+
 var _axios = require('axios');
 
 var _axios2 = _interopRequireDefault(_axios);
@@ -6107,8 +6111,6 @@ var store = (0, _redux.createStore)(_index2.default);
 
 // import searchBar
 
-// import documentDisplay
-
 
 var App = React.createClass({
   displayName: 'App',
@@ -6116,51 +6118,91 @@ var App = React.createClass({
     var _this = this;
 
     _axios2.default.get('/reports').then(function (data) {
-      _this.setState({ reports: data });
+      _this.props.receiveReports(data.data);
     });
   },
   render: function render() {
     return React.createElement(
       'div',
-      null,
-      ' nothing to see yet '
+      { className: 'appView' },
+      React.createElement(
+        'header',
+        null,
+        React.createElement('input', { className: 'filter' }),
+        ' filter and stuff here'
+      ),
+      React.createElement(
+        'div',
+        null,
+        React.createElement(_listComponent2.default, { className: 'listOfReports' }),
+        React.createElement(_documentDisplayComponent2.default, { className: 'documentDisplay' })
+      )
     );
   }
 });
 
+function mapStateToProps(reduxState) {
+  return {
+    reports: reduxState.reports
+  };
+}
+
+function receiveReports(reportsArr) {
+  return {
+    payload: reportsArr,
+    type: 'receiveReports'
+  };
+}
+
+function mapDispatchToProps(dispatch) {
+  return (0, _redux.bindActionCreators)({
+    receiveReports: receiveReports
+  }, dispatch);
+}
+
+var ConnectedApp = (0, _reactRedux.connect)(mapStateToProps, mapDispatchToProps)(App);
+
 ReactDOM.render(React.createElement(
   _reactRedux.Provider,
   { store: store },
-  React.createElement(App, null)
+  React.createElement(ConnectedApp, null)
 ), document.getElementById('app'));
 
-},{"./list/listComponent.js":76,"./reducers/index.js":77,"axios":1,"react-redux":36,"redux":69}],74:[function(require,module,exports){
-"use strict";
+// ReactDOM.render(
+//   <App />,
+//   document.getElementById('app')
+// );
+
+},{"./documentDisplay/documentDisplayComponent.js":74,"./list/listComponent.js":75,"./reducers/index.js":77,"axios":1,"react-redux":36,"redux":69}],74:[function(require,module,exports){
+'use strict';
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-exports.default = function (previousState, action) {
-  // make sure to return preciousState;
-};
-
-;
-
-},{}],75:[function(require,module,exports){
-'use strict';
-
 var _reactRedux = require('react-redux');
 
 function mapStateToProps(reduxState) {
   return {
-    something: reduxState
+    curReport: reduxState.curReport
   };
 }
 
-// export default connect(mapStateToProps)(List);
+var DocumentDisplay = React.createClass({
+  displayName: 'DocumentDisplay',
+  render: function render() {
+    return React.createElement(
+      'div',
+      null,
+      ' ',
+      this.props.curReport.title
+    );
+  }
+});
 
-},{"react-redux":36}],76:[function(require,module,exports){
+exports.default = (0, _reactRedux.connect)(mapStateToProps)(DocumentDisplay);
+
+},{"react-redux":36}],75:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -6177,37 +6219,82 @@ var _reactRedux = require('react-redux');
 
 var List = React.createClass({
   displayName: 'List',
+  makeList: function makeList() {
+    var _this = this;
+
+    var reportsArr = this.props.reports;
+
+    reportsArr.forEach(function (reportObj) {
+      var time = new Date(reportObj.created);
+      reportObj.created = time;
+      reportObj.title = time.getTime() + reportObj.title;
+    });
+
+    reportsArr = reportsArr.sort(function (reportObj1, reportObj2) {
+      return reportObj1.created > reportObj2.created;
+    });
+
+    return reportsArr.map(function (ele, index) {
+      return React.createElement(
+        'li',
+        { key: index, onClick: function onClick() {
+            _this.props.viewDocument(ele);
+          } },
+        ' ',
+        ele.title,
+        ' '
+      );
+    });
+  },
   render: function render() {
-    React.createElement(
+    var reportList = this.makeList();
+    return React.createElement(
       'ul',
       null,
-      'hey man nothing to see yet, gotta use redux'
+      reportList.length ? reportList : ''
     );
   }
 });
 
 function mapStateToProps(reduxState) {
   return {
-    something: reduxState
+    reports: reduxState.reports
   };
 }
 
-function actionCreator() {
+function viewDocument(reportsObj) {
   return {
-    payload: 'nothing',
-    type: 'clicking'
+    type: 'pickReport',
+    payload: reportsObj
   };
 }
 
 function mapDispatchToProps(dispatch) {
-  return bindActionCreator({ propName: actionCreator }, dispatch);
+  return (0, _redux.bindActionCreators)({
+    viewDocument: viewDocument
+  }, dispatch);
 }
 
-// export default connect(mapStateToProps, mapDispatchToProps)(List);
+exports.default = (0, _reactRedux.connect)(mapStateToProps, mapDispatchToProps)(List);
 
-exports.default = (0, _reactRedux.connect)(mapStateToProps)(List);
+},{"react-redux":36,"redux":69}],76:[function(require,module,exports){
+'use strict';
 
-},{"react-redux":36,"redux":69}],77:[function(require,module,exports){
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+exports.default = function (previousState, action) {
+  if (action.type === 'pickReport') {
+    return action.payload;
+  } else {
+    return previousState === undefined ? {} : previousState;
+  }
+};
+
+;
+
+},{}],77:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -6216,40 +6303,100 @@ Object.defineProperty(exports, "__esModule", {
 
 var _redux = require('redux');
 
+var _reportsReducer = require('./reportsReducer.js');
+
+var _reportsReducer2 = _interopRequireDefault(_reportsReducer);
+
+var _curReportReducer = require('./curReportReducer.js');
+
+var _curReportReducer2 = _interopRequireDefault(_curReportReducer);
+
+var _reportFilterReducer = require('./reportFilterReducer.js');
+
+var _reportFilterReducer2 = _interopRequireDefault(_reportFilterReducer);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 exports.default = (0, _redux.combineReducers)({
-  //stateName: reducerFunc
+  reports: _reportsReducer2.default,
+  curReport: _curReportReducer2.default,
+  reportFilter: _reportFilterReducer2.default
+});
+// there should be following reducers:
+// current document being displayed or ""
+// current list of reports or []
+// current filter/user input or ''
 
-  // books: BooksReducer
+},{"./curReportReducer.js":76,"./reportFilterReducer.js":78,"./reportsReducer.js":79,"redux":69}],78:[function(require,module,exports){
+'use strict';
 
+Object.defineProperty(exports, "__esModule", {
+  value: true
 });
 
-},{"redux":69}],78:[function(require,module,exports){
+exports.default = function (previousState, action) {
+  if (action.type === 'updateFilter') {
+    return action.payload;
+  } else {
+    return previousState === undefined ? '' : previousState;
+  }
+};
+
+; //to keep track of what the current filter is
+
+},{}],79:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+exports.default = function (previousState, action) {
+  // make sure to return previousState;
+  if (action.type === 'receiveReports') {
+    return action.payload;
+  } else {
+    return previousState === undefined ? [] : previousState;
+  }
+};
+
+;
+
+},{}],80:[function(require,module,exports){
 'use strict';
 
 var _redux = require('redux');
 
 var _reactRedux = require('react-redux');
 
+var ReportFilter = React.createClass({
+  displayName: 'ReportFilter',
+  render: function render() {
+    return React.createElement('input', { placeholder: 'enter filter here' });
+  }
+});
+
 function mapStateToProps(reduxState) {
-  //get data from reduxState;
   return {
-    something: reduxState
+    reportFilter: reduxState.reportFilter
   };
 }
 
-function actionCreator() {
+function updateFilter(string) {
   return {
-    payload: 'nothing',
-    type: 'clicking'
+    type: 'updateFilter',
+    payload: string
   };
 }
 
 function mapDispatchToProps(dispatch) {
-  return bindActionCreator({ propName: actionCreator }, dispatch);
+  return (0, _redux.bindActionCreators)({
+    propName: updateFilter
+  }, dispatch);
 }
 
 // export default connect(mapStateToProps, mapDispatchToProps)(List);
 
 // export default connect(mapStateToProps)(List);
 
-},{"react-redux":36,"redux":69}]},{},[73,74,75,76,77,78]);
+},{"react-redux":36,"redux":69}]},{},[73,74,75,76,77,78,79,80]);

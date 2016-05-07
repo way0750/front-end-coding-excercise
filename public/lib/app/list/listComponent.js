@@ -7,32 +7,48 @@ import {connect} from 'react-redux'
 
 
 const List = React.createClass({
+  makeList () {
+    let reportsArr = this.props.reports;
+
+    reportsArr.forEach( (reportObj) => {
+      let time = new Date(reportObj.created);
+      reportObj.created = time;
+      reportObj.title = time.getTime() + reportObj.title;
+    });
+
+    reportsArr = reportsArr.sort( (reportObj1, reportObj2) => {
+      return reportObj1.created > reportObj2.created;
+    });
+
+    return reportsArr.map( (ele, index) => {
+      return <li key={index} onClick={ () => {this.props.viewDocument(ele)}}> {ele.title} </li>;
+    });
+  },
   render () {
-    <ul>
-      {
-        'hey man nothing to see yet, gotta use redux'
-      }
-    </ul>
+    let reportList = this.makeList();
+    return (<ul>
+          {reportList.length ? reportList : ''}
+        </ul>);
   }
 });
 
 function mapStateToProps (reduxState) {
   return {
-    something: reduxState
+    reports: reduxState.reports
   };
 }
 
-function actionCreator () {
+function viewDocument (reportsObj) {
   return {
-    payload: 'nothing',
-    type: 'clicking'
+    type: 'pickReport',
+    payload: reportsObj
   };
 }
 
 function mapDispatchToProps (dispatch) {
-  return bindActionCreator({ propName: actionCreator }, dispatch );
+  return bindActionCreators({
+    viewDocument: viewDocument
+  }, dispatch );
 }
 
-// export default connect(mapStateToProps, mapDispatchToProps)(List);
-
-export default connect(mapStateToProps)(List);
+export default connect(mapStateToProps, mapDispatchToProps)(List);
