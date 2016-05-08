@@ -24,7 +24,7 @@ const App = React.createClass({
       <div className='appView'>
         <header className="banner">
           <SearchBar />
-          <div><h1> Security Briefing </h1></div>
+          <div><h1> Security Briefings </h1></div>
         </header>
         <List/>
         <DocumentDisplay/>
@@ -63,8 +63,3 @@ ReactDOM.render(
   </Provider>,
   document.getElementById('app')
 );
-
-// ReactDOM.render(
-//   <App />,
-//   document.getElementById('app')
-// );

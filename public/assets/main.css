@@ -64,25 +64,11 @@ body{
   left: 1em;
 }
 
-
-
 .showDocument {
   opacity: 1;
   transition: all 600ms;
   left: 0em;
 }
-
-
-
-/*
-.showDocument{
-  -webkit-animation: 500ms linear 0s displayDocument;
-     -moz-animation: 500ms linear 0s displayDocument;
-       -o-animation: 500ms linear 0s displayDocument;
-          animation: 500ms linear 0s displayDocument;
-  opacity: 1;
-}
-*/
 
 .listOfReports{
   width: 30%;
@@ -100,10 +86,13 @@ body{
 }
 
 .listOfReports button {
+  font-size: 1em;
+  color: white;
+  opacity: 0.9;
   width: 100%;
   background-color: transparent;
-  padding-bottom: 2em;
-  padding-top: 2em;
+  padding-bottom: 1.5em;
+  padding-top: 1.5em;
   border: none;
   transition: all 300ms;
 }
@@ -140,9 +129,13 @@ body{
   display: inline-block;
   height: 5em;
   width: 100%;
+  background-image: url(https://netlify.scdn4.secure.raxcdn.com/592afbfc25de7735ed3ccf479f4267ad1c28abd8/10a27/790ca480f50790122ed0aabefc386695.svg);
+  background-repeat: no-repeat;
+  background-position: 95% 1em;
+  background-size: 4em 4em;
 }
 .banner h1 {
-  width: 8.2em;
+  width: 9em;
   margin: 0.5em auto 0em auto;
 }
 

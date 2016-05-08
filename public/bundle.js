@@ -6136,7 +6136,7 @@ var App = React.createClass({
           React.createElement(
             'h1',
             null,
-            ' Security Briefing '
+            ' Security Briefings '
           )
         )
       ),
@@ -6172,11 +6172,6 @@ ReactDOM.render(React.createElement(
   { store: store },
   React.createElement(ConnectedApp, null)
 ), document.getElementById('app'));
-
-// ReactDOM.render(
-//   <App />,
-//   document.getElementById('app')
-// );
 
 },{"./documentDisplay/documentDisplayComponent.js":74,"./list/listComponent.js":75,"./reducers/index.js":77,"./searchBar/searchBarComponent.js":80,"axios":1,"react-redux":36,"redux":69}],74:[function(require,module,exports){
 'use strict';

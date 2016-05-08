@@ -35,22 +35,8 @@
   left: 1em;
 }
 
-
-
 .showDocument {
   opacity: 1;
   transition: all 600ms;
   left: 0em;
 }
-
-
-
-/*
-.showDocument{
-  -webkit-animation: 500ms linear 0s displayDocument;
-     -moz-animation: 500ms linear 0s displayDocument;
-       -o-animation: 500ms linear 0s displayDocument;
-          animation: 500ms linear 0s displayDocument;
-  opacity: 1;
-}
-*/

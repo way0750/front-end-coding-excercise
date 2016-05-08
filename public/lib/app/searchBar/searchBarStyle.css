@@ -12,9 +12,13 @@
   display: inline-block;
   height: 5em;
   width: 100%;
+  background-image: url(https://netlify.scdn4.secure.raxcdn.com/592afbfc25de7735ed3ccf479f4267ad1c28abd8/10a27/790ca480f50790122ed0aabefc386695.svg);
+  background-repeat: no-repeat;
+  background-position: 95% 1em;
+  background-size: 4em 4em;
 }
 .banner h1 {
-  width: 8.2em;
+  width: 9em;
   margin: 0.5em auto 0em auto;
 }
 
