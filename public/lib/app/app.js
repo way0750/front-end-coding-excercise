@@ -11,13 +11,18 @@ import SearchBar from './searchBar/searchBarComponent.js'
 import List from './list/listComponent.js';
 import DocumentDisplay from './documentDisplay/documentDisplayComponent.js'
 
+// since we are using github to show demo, we can't run a node server on github.com
+// so we won't need axios to make http request
+// and we will simply hard code all reports in here
 import axios from 'axios';
+import mockData from './mockDataForDemo.js';
 
 const App = React.createClass({
   componentDidMount() {
-    axios.get('/reports').then( (data) => {
-      this.props.receiveReports(data.data);
-    });
+    // axios.get('/reports').then( (data) => {
+    //   this.props.receiveReports(data.data);
+    // });
+    this.props.receiveReports(mockData);
   },
   render() {
     return (
