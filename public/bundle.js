@@ -6131,9 +6131,13 @@ var App = React.createClass({
         { className: 'banner' },
         React.createElement(_searchBarComponent2.default, null),
         React.createElement(
-          'h1',
+          'div',
           null,
-          ' Security Briefing '
+          React.createElement(
+            'h1',
+            null,
+            ' Security Briefing '
+          )
         )
       ),
       React.createElement(_listComponent2.default, null),
@@ -6192,20 +6196,37 @@ function mapStateToProps(reduxState) {
 var DocumentDisplay = React.createClass({
   displayName: "DocumentDisplay",
   render: function render() {
-    return React.createElement(
-      "div",
-      { className: "documentDisplay" },
-      React.createElement(
-        "h1",
-        null,
-        this.props.curReport.title
-      ),
-      this.props.curReport.body
-    );
+
+    if (this.props.curReport.body === undefined) {
+      return React.createElement(
+        "div",
+        { className: "documentDisplay" },
+        React.createElement(
+          "h1",
+          { className: "noCurReport" },
+          this.props.curReport.title
+        )
+      );
+    } else {
+      return React.createElement(
+        "div",
+        { className: "documentDisplay" },
+        React.createElement(
+          "h1",
+          null,
+          this.props.curReport.title
+        ),
+        this.props.curReport.body
+      );
+    }
   }
 });
 
 exports.default = (0, _reactRedux.connect)(mapStateToProps)(DocumentDisplay);
+
+// background-image: url();
+//   background-repeat: no-repeat;
+//   background-position: 90% 90%;
 
 },{"react-redux":36}],75:[function(require,module,exports){
 'use strict';
