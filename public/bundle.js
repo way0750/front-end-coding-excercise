@@ -1,1108 +1,4 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-module.exports = require('./lib/axios');
-},{"./lib/axios":3}],2:[function(require,module,exports){
-(function (process){
-'use strict';
-
-var utils = require('./../utils');
-var buildURL = require('./../helpers/buildURL');
-var parseHeaders = require('./../helpers/parseHeaders');
-var transformData = require('./../helpers/transformData');
-var isURLSameOrigin = require('./../helpers/isURLSameOrigin');
-var btoa = (typeof window !== 'undefined' && window.btoa) || require('./../helpers/btoa');
-var settle = require('../helpers/settle');
-
-module.exports = function xhrAdapter(resolve, reject, config) {
-  var requestData = config.data;
-  var requestHeaders = config.headers;
-
-  if (utils.isFormData(requestData)) {
-    delete requestHeaders['Content-Type']; // Let the browser set it
-  }
-
-  var request = new XMLHttpRequest();
-  var loadEvent = 'onreadystatechange';
-  var xDomain = false;
-
-  // For IE 8/9 CORS support
-  // Only supports POST and GET calls and doesn't returns the response headers.
-  // DON'T do this for testing b/c XMLHttpRequest is mocked, not XDomainRequest.
-  if (process.env.NODE_ENV !== 'test' && typeof window !== 'undefined' && window.XDomainRequest && !('withCredentials' in request) && !isURLSameOrigin(config.url)) {
-    request = new window.XDomainRequest();
-    loadEvent = 'onload';
-    xDomain = true;
-  }
-
-  // HTTP basic authentication
-  if (config.auth) {
-    var username = config.auth.username || '';
-    var password = config.auth.password || '';
-    requestHeaders.Authorization = 'Basic ' + btoa(username + ':' + password);
-  }
-
-  request.open(config.method.toUpperCase(), buildURL(config.url, config.params, config.paramsSerializer), true);
-
-  // Set the request timeout in MS
-  request.timeout = config.timeout;
-
-  // For IE 9 CORS support.
-  request.onprogress = function handleProgress() {};
-  request.ontimeout = function handleTimeout() {};
-
-  // Listen for ready state
-  request[loadEvent] = function handleLoad() {
-    if (!request || (request.readyState !== 4 && !xDomain)) {
-      return;
-    }
-
-    // The request errored out and we didn't get a response, this will be
-    // handled by onerror instead
-    if (request.status === 0) {
-      return;
-    }
-
-    // Prepare the response
-    var responseHeaders = 'getAllResponseHeaders' in request ? parseHeaders(request.getAllResponseHeaders()) : null;
-    var responseData = !config.responseType || config.responseType === 'text' ? request.responseText : request.response;
-    var response = {
-      data: transformData(
-        responseData,
-        responseHeaders,
-        config.transformResponse
-      ),
-      // IE sends 1223 instead of 204 (https://github.com/mzabriskie/axios/issues/201)
-      status: request.status === 1223 ? 204 : request.status,
-      statusText: request.status === 1223 ? 'No Content' : request.statusText,
-      headers: responseHeaders,
-      config: config,
-      request: request
-    };
-
-    settle(resolve, reject, response);
-
-    // Clean up request
-    request = null;
-  };
-
-  // Handle low level network errors
-  request.onerror = function handleError() {
-    // Real errors are hidden from us by the browser
-    // onerror should only fire if it's a network error
-    reject(new Error('Network Error'));
-
-    // Clean up request
-    request = null;
-  };
-
-  // Handle timeout
-  request.ontimeout = function handleTimeout() {
-    var err = new Error('timeout of ' + config.timeout + 'ms exceeded');
-    err.timeout = config.timeout;
-    err.code = 'ECONNABORTED';
-    reject(err);
-
-    // Clean up request
-    request = null;
-  };
-
-  // Add xsrf header
-  // This is only done if running in a standard browser environment.
-  // Specifically not if we're in a web worker, or react-native.
-  if (utils.isStandardBrowserEnv()) {
-    var cookies = require('./../helpers/cookies');
-
-    // Add xsrf header
-    var xsrfValue = config.withCredentials || isURLSameOrigin(config.url) ?
-        cookies.read(config.xsrfCookieName) :
-        undefined;
-
-    if (xsrfValue) {
-      requestHeaders[config.xsrfHeaderName] = xsrfValue;
-    }
-  }
-
-  // Add headers to the request
-  if ('setRequestHeader' in request) {
-    utils.forEach(requestHeaders, function setRequestHeader(val, key) {
-      if (typeof requestData === 'undefined' && key.toLowerCase() === 'content-type') {
-        // Remove Content-Type if data is undefined
-        delete requestHeaders[key];
-      } else {
-        // Otherwise add header to the request
-        request.setRequestHeader(key, val);
-      }
-    });
-  }
-
-  // Add withCredentials to request if needed
-  if (config.withCredentials) {
-    request.withCredentials = true;
-  }
-
-  // Add responseType to request if needed
-  if (config.responseType) {
-    try {
-      request.responseType = config.responseType;
-    } catch (e) {
-      if (request.responseType !== 'json') {
-        throw e;
-      }
-    }
-  }
-
-  // Handle progress if needed
-  if (config.progress) {
-    if (config.method === 'post' || config.method === 'put') {
-      request.upload.addEventListener('progress', config.progress);
-    } else if (config.method === 'get') {
-      request.addEventListener('progress', config.progress);
-    }
-  }
-
-  if (requestData === undefined) {
-    requestData = null;
-  }
-
-  // Send the request
-  request.send(requestData);
-};
-
-}).call(this,require('_process'))
-},{"../helpers/settle":15,"./../helpers/btoa":8,"./../helpers/buildURL":9,"./../helpers/cookies":11,"./../helpers/isURLSameOrigin":13,"./../helpers/parseHeaders":14,"./../helpers/transformData":17,"./../utils":18,"_process":33}],3:[function(require,module,exports){
-'use strict';
-
-var defaults = require('./defaults');
-var utils = require('./utils');
-var dispatchRequest = require('./core/dispatchRequest');
-var InterceptorManager = require('./core/InterceptorManager');
-var isAbsoluteURL = require('./helpers/isAbsoluteURL');
-var combineURLs = require('./helpers/combineURLs');
-var bind = require('./helpers/bind');
-var transformData = require('./helpers/transformData');
-
-function Axios(defaultConfig) {
-  this.defaults = utils.merge({}, defaultConfig);
-  this.interceptors = {
-    request: new InterceptorManager(),
-    response: new InterceptorManager()
-  };
-}
-
-Axios.prototype.request = function request(config) {
-  /*eslint no-param-reassign:0*/
-  // Allow for axios('example/url'[, config]) a la fetch API
-  if (typeof config === 'string') {
-    config = utils.merge({
-      url: arguments[0]
-    }, arguments[1]);
-  }
-
-  config = utils.merge(defaults, this.defaults, { method: 'get' }, config);
-
-  // Support baseURL config
-  if (config.baseURL && !isAbsoluteURL(config.url)) {
-    config.url = combineURLs(config.baseURL, config.url);
-  }
-
-  // Don't allow overriding defaults.withCredentials
-  config.withCredentials = config.withCredentials || this.defaults.withCredentials;
-
-  // Transform request data
-  config.data = transformData(
-    config.data,
-    config.headers,
-    config.transformRequest
-  );
-
-  // Flatten headers
-  config.headers = utils.merge(
-    config.headers.common || {},
-    config.headers[config.method] || {},
-    config.headers || {}
-  );
-
-  utils.forEach(
-    ['delete', 'get', 'head', 'post', 'put', 'patch', 'common'],
-    function cleanHeaderConfig(method) {
-      delete config.headers[method];
-    }
-  );
-
-  // Hook up interceptors middleware
-  var chain = [dispatchRequest, undefined];
-  var promise = Promise.resolve(config);
-
-  this.interceptors.request.forEach(function unshiftRequestInterceptors(interceptor) {
-    chain.unshift(interceptor.fulfilled, interceptor.rejected);
-  });
-
-  this.interceptors.response.forEach(function pushResponseInterceptors(interceptor) {
-    chain.push(interceptor.fulfilled, interceptor.rejected);
-  });
-
-  while (chain.length) {
-    promise = promise.then(chain.shift(), chain.shift());
-  }
-
-  return promise;
-};
-
-var defaultInstance = new Axios(defaults);
-var axios = module.exports = bind(Axios.prototype.request, defaultInstance);
-
-// Expose properties from defaultInstance
-axios.defaults = defaultInstance.defaults;
-axios.interceptors = defaultInstance.interceptors;
-
-// Factory for creating new instances
-axios.create = function create(defaultConfig) {
-  return new Axios(defaultConfig);
-};
-
-// Expose all/spread
-axios.all = function all(promises) {
-  return Promise.all(promises);
-};
-axios.spread = require('./helpers/spread');
-
-// Provide aliases for supported request methods
-utils.forEach(['delete', 'get', 'head'], function forEachMethodNoData(method) {
-  /*eslint func-names:0*/
-  Axios.prototype[method] = function(url, config) {
-    return this.request(utils.merge(config || {}, {
-      method: method,
-      url: url
-    }));
-  };
-  axios[method] = bind(Axios.prototype[method], defaultInstance);
-});
-
-utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
-  /*eslint func-names:0*/
-  Axios.prototype[method] = function(url, data, config) {
-    return this.request(utils.merge(config || {}, {
-      method: method,
-      url: url,
-      data: data
-    }));
-  };
-  axios[method] = bind(Axios.prototype[method], defaultInstance);
-});
-
-},{"./core/InterceptorManager":4,"./core/dispatchRequest":5,"./defaults":6,"./helpers/bind":7,"./helpers/combineURLs":10,"./helpers/isAbsoluteURL":12,"./helpers/spread":16,"./helpers/transformData":17,"./utils":18}],4:[function(require,module,exports){
-'use strict';
-
-var utils = require('./../utils');
-
-function InterceptorManager() {
-  this.handlers = [];
-}
-
-/**
- * Add a new interceptor to the stack
- *
- * @param {Function} fulfilled The function to handle `then` for a `Promise`
- * @param {Function} rejected The function to handle `reject` for a `Promise`
- *
- * @return {Number} An ID used to remove interceptor later
- */
-InterceptorManager.prototype.use = function use(fulfilled, rejected) {
-  this.handlers.push({
-    fulfilled: fulfilled,
-    rejected: rejected
-  });
-  return this.handlers.length - 1;
-};
-
-/**
- * Remove an interceptor from the stack
- *
- * @param {Number} id The ID that was returned by `use`
- */
-InterceptorManager.prototype.eject = function eject(id) {
-  if (this.handlers[id]) {
-    this.handlers[id] = null;
-  }
-};
-
-/**
- * Iterate over all the registered interceptors
- *
- * This method is particularly useful for skipping over any
- * interceptors that may have become `null` calling `eject`.
- *
- * @param {Function} fn The function to call for each interceptor
- */
-InterceptorManager.prototype.forEach = function forEach(fn) {
-  utils.forEach(this.handlers, function forEachHandler(h) {
-    if (h !== null) {
-      fn(h);
-    }
-  });
-};
-
-module.exports = InterceptorManager;
-
-},{"./../utils":18}],5:[function(require,module,exports){
-(function (process){
-'use strict';
-
-/**
- * Dispatch a request to the server using whichever adapter
- * is supported by the current environment.
- *
- * @param {object} config The config that is to be used for the request
- * @returns {Promise} The Promise to be fulfilled
- */
-module.exports = function dispatchRequest(config) {
-  return new Promise(function executor(resolve, reject) {
-    try {
-      var adapter;
-
-      if (typeof config.adapter === 'function') {
-        // For custom adapter support
-        adapter = config.adapter;
-      } else if (typeof XMLHttpRequest !== 'undefined') {
-        // For browsers use XHR adapter
-        adapter = require('../adapters/xhr');
-      } else if (typeof process !== 'undefined') {
-        // For node use HTTP adapter
-        adapter = require('../adapters/http');
-      }
-
-      if (typeof adapter === 'function') {
-        adapter(resolve, reject, config);
-      }
-    } catch (e) {
-      reject(e);
-    }
-  });
-};
-
-
-}).call(this,require('_process'))
-},{"../adapters/http":2,"../adapters/xhr":2,"_process":33}],6:[function(require,module,exports){
-'use strict';
-
-var utils = require('./utils');
-
-var PROTECTION_PREFIX = /^\)\]\}',?\n/;
-var DEFAULT_CONTENT_TYPE = {
-  'Content-Type': 'application/x-www-form-urlencoded'
-};
-
-module.exports = {
-  transformRequest: [function transformRequest(data, headers) {
-    if (utils.isFormData(data) || utils.isArrayBuffer(data) || utils.isStream(data)) {
-      return data;
-    }
-    if (utils.isArrayBufferView(data)) {
-      return data.buffer;
-    }
-    if (utils.isObject(data) && !utils.isFile(data) && !utils.isBlob(data)) {
-      // Set application/json if no Content-Type has been specified
-      if (!utils.isUndefined(headers)) {
-        utils.forEach(headers, function processContentTypeHeader(val, key) {
-          if (key.toLowerCase() === 'content-type') {
-            headers['Content-Type'] = val;
-          }
-        });
-
-        if (utils.isUndefined(headers['Content-Type'])) {
-          headers['Content-Type'] = 'application/json;charset=utf-8';
-        }
-      }
-      return JSON.stringify(data);
-    }
-    return data;
-  }],
-
-  transformResponse: [function transformResponse(data) {
-    /*eslint no-param-reassign:0*/
-    if (typeof data === 'string') {
-      data = data.replace(PROTECTION_PREFIX, '');
-      try {
-        data = JSON.parse(data);
-      } catch (e) { /* Ignore */ }
-    }
-    return data;
-  }],
-
-  headers: {
-    common: {
-      'Accept': 'application/json, text/plain, */*'
-    },
-    patch: utils.merge(DEFAULT_CONTENT_TYPE),
-    post: utils.merge(DEFAULT_CONTENT_TYPE),
-    put: utils.merge(DEFAULT_CONTENT_TYPE)
-  },
-
-  timeout: 0,
-
-  xsrfCookieName: 'XSRF-TOKEN',
-  xsrfHeaderName: 'X-XSRF-TOKEN',
-
-  maxContentLength: -1,
-
-  validateStatus: function validateStatus(status) {
-    return status >= 200 && status < 300;
-  }
-};
-
-},{"./utils":18}],7:[function(require,module,exports){
-'use strict';
-
-module.exports = function bind(fn, thisArg) {
-  return function wrap() {
-    var args = new Array(arguments.length);
-    for (var i = 0; i < args.length; i++) {
-      args[i] = arguments[i];
-    }
-    return fn.apply(thisArg, args);
-  };
-};
-
-},{}],8:[function(require,module,exports){
-'use strict';
-
-// btoa polyfill for IE<10 courtesy https://github.com/davidchambers/Base64.js
-
-var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-
-function E() {
-  this.message = 'String contains an invalid character';
-}
-E.prototype = new Error;
-E.prototype.code = 5;
-E.prototype.name = 'InvalidCharacterError';
-
-function btoa(input) {
-  var str = String(input);
-  var output = '';
-  for (
-    // initialize result and counter
-    var block, charCode, idx = 0, map = chars;
-    // if the next str index does not exist:
-    //   change the mapping table to "="
-    //   check if d has no fractional digits
-    str.charAt(idx | 0) || (map = '=', idx % 1);
-    // "8 - idx % 1 * 8" generates the sequence 2, 4, 6, 8
-    output += map.charAt(63 & block >> 8 - idx % 1 * 8)
-  ) {
-    charCode = str.charCodeAt(idx += 3 / 4);
-    if (charCode > 0xFF) {
-      throw new E();
-    }
-    block = block << 8 | charCode;
-  }
-  return output;
-}
-
-module.exports = btoa;
-
-},{}],9:[function(require,module,exports){
-'use strict';
-
-var utils = require('./../utils');
-
-function encode(val) {
-  return encodeURIComponent(val).
-    replace(/%40/gi, '@').
-    replace(/%3A/gi, ':').
-    replace(/%24/g, '$').
-    replace(/%2C/gi, ',').
-    replace(/%20/g, '+').
-    replace(/%5B/gi, '[').
-    replace(/%5D/gi, ']');
-}
-
-/**
- * Build a URL by appending params to the end
- *
- * @param {string} url The base of the url (e.g., http://www.google.com)
- * @param {object} [params] The params to be appended
- * @returns {string} The formatted url
- */
-module.exports = function buildURL(url, params, paramsSerializer) {
-  /*eslint no-param-reassign:0*/
-  if (!params) {
-    return url;
-  }
-
-  var serializedParams;
-  if (paramsSerializer) {
-    serializedParams = paramsSerializer(params);
-  } else {
-    var parts = [];
-
-    utils.forEach(params, function serialize(val, key) {
-      if (val === null || typeof val === 'undefined') {
-        return;
-      }
-
-      if (utils.isArray(val)) {
-        key = key + '[]';
-      }
-
-      if (!utils.isArray(val)) {
-        val = [val];
-      }
-
-      utils.forEach(val, function parseValue(v) {
-        if (utils.isDate(v)) {
-          v = v.toISOString();
-        } else if (utils.isObject(v)) {
-          v = JSON.stringify(v);
-        }
-        parts.push(encode(key) + '=' + encode(v));
-      });
-    });
-
-    serializedParams = parts.join('&');
-  }
-
-  if (serializedParams) {
-    url += (url.indexOf('?') === -1 ? '?' : '&') + serializedParams;
-  }
-
-  return url;
-};
-
-
-},{"./../utils":18}],10:[function(require,module,exports){
-'use strict';
-
-/**
- * Creates a new URL by combining the specified URLs
- *
- * @param {string} baseURL The base URL
- * @param {string} relativeURL The relative URL
- * @returns {string} The combined URL
- */
-module.exports = function combineURLs(baseURL, relativeURL) {
-  return baseURL.replace(/\/+$/, '') + '/' + relativeURL.replace(/^\/+/, '');
-};
-
-},{}],11:[function(require,module,exports){
-'use strict';
-
-var utils = require('./../utils');
-
-module.exports = (
-  utils.isStandardBrowserEnv() ?
-
-  // Standard browser envs support document.cookie
-  (function standardBrowserEnv() {
-    return {
-      write: function write(name, value, expires, path, domain, secure) {
-        var cookie = [];
-        cookie.push(name + '=' + encodeURIComponent(value));
-
-        if (utils.isNumber(expires)) {
-          cookie.push('expires=' + new Date(expires).toGMTString());
-        }
-
-        if (utils.isString(path)) {
-          cookie.push('path=' + path);
-        }
-
-        if (utils.isString(domain)) {
-          cookie.push('domain=' + domain);
-        }
-
-        if (secure === true) {
-          cookie.push('secure');
-        }
-
-        document.cookie = cookie.join('; ');
-      },
-
-      read: function read(name) {
-        var match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
-        return (match ? decodeURIComponent(match[3]) : null);
-      },
-
-      remove: function remove(name) {
-        this.write(name, '', Date.now() - 86400000);
-      }
-    };
-  })() :
-
-  // Non standard browser env (web workers, react-native) lack needed support.
-  (function nonStandardBrowserEnv() {
-    return {
-      write: function write() {},
-      read: function read() { return null; },
-      remove: function remove() {}
-    };
-  })()
-);
-
-},{"./../utils":18}],12:[function(require,module,exports){
-'use strict';
-
-/**
- * Determines whether the specified URL is absolute
- *
- * @param {string} url The URL to test
- * @returns {boolean} True if the specified URL is absolute, otherwise false
- */
-module.exports = function isAbsoluteURL(url) {
-  // A URL is considered absolute if it begins with "<scheme>://" or "//" (protocol-relative URL).
-  // RFC 3986 defines scheme name as a sequence of characters beginning with a letter and followed
-  // by any combination of letters, digits, plus, period, or hyphen.
-  return /^([a-z][a-z\d\+\-\.]*:)?\/\//i.test(url);
-};
-
-},{}],13:[function(require,module,exports){
-'use strict';
-
-var utils = require('./../utils');
-
-module.exports = (
-  utils.isStandardBrowserEnv() ?
-
-  // Standard browser envs have full support of the APIs needed to test
-  // whether the request URL is of the same origin as current location.
-  (function standardBrowserEnv() {
-    var msie = /(msie|trident)/i.test(navigator.userAgent);
-    var urlParsingNode = document.createElement('a');
-    var originURL;
-
-    /**
-    * Parse a URL to discover it's components
-    *
-    * @param {String} url The URL to be parsed
-    * @returns {Object}
-    */
-    function resolveURL(url) {
-      var href = url;
-
-      if (msie) {
-        // IE needs attribute set twice to normalize properties
-        urlParsingNode.setAttribute('href', href);
-        href = urlParsingNode.href;
-      }
-
-      urlParsingNode.setAttribute('href', href);
-
-      // urlParsingNode provides the UrlUtils interface - http://url.spec.whatwg.org/#urlutils
-      return {
-        href: urlParsingNode.href,
-        protocol: urlParsingNode.protocol ? urlParsingNode.protocol.replace(/:$/, '') : '',
-        host: urlParsingNode.host,
-        search: urlParsingNode.search ? urlParsingNode.search.replace(/^\?/, '') : '',
-        hash: urlParsingNode.hash ? urlParsingNode.hash.replace(/^#/, '') : '',
-        hostname: urlParsingNode.hostname,
-        port: urlParsingNode.port,
-        pathname: (urlParsingNode.pathname.charAt(0) === '/') ?
-                  urlParsingNode.pathname :
-                  '/' + urlParsingNode.pathname
-      };
-    }
-
-    originURL = resolveURL(window.location.href);
-
-    /**
-    * Determine if a URL shares the same origin as the current location
-    *
-    * @param {String} requestURL The URL to test
-    * @returns {boolean} True if URL shares the same origin, otherwise false
-    */
-    return function isURLSameOrigin(requestURL) {
-      var parsed = (utils.isString(requestURL)) ? resolveURL(requestURL) : requestURL;
-      return (parsed.protocol === originURL.protocol &&
-            parsed.host === originURL.host);
-    };
-  })() :
-
-  // Non standard browser envs (web workers, react-native) lack needed support.
-  (function nonStandardBrowserEnv() {
-    return function isURLSameOrigin() {
-      return true;
-    };
-  })()
-);
-
-},{"./../utils":18}],14:[function(require,module,exports){
-'use strict';
-
-var utils = require('./../utils');
-
-/**
- * Parse headers into an object
- *
- * ```
- * Date: Wed, 27 Aug 2014 08:58:49 GMT
- * Content-Type: application/json
- * Connection: keep-alive
- * Transfer-Encoding: chunked
- * ```
- *
- * @param {String} headers Headers needing to be parsed
- * @returns {Object} Headers parsed into an object
- */
-module.exports = function parseHeaders(headers) {
-  var parsed = {};
-  var key;
-  var val;
-  var i;
-
-  if (!headers) { return parsed; }
-
-  utils.forEach(headers.split('\n'), function parser(line) {
-    i = line.indexOf(':');
-    key = utils.trim(line.substr(0, i)).toLowerCase();
-    val = utils.trim(line.substr(i + 1));
-
-    if (key) {
-      parsed[key] = parsed[key] ? parsed[key] + ', ' + val : val;
-    }
-  });
-
-  return parsed;
-};
-
-},{"./../utils":18}],15:[function(require,module,exports){
-'use strict';
-
-/**
- * Resolve or reject a Promise based on response status.
- *
- * @param {Function} resolve A function that resolves the promise.
- * @param {Function} reject A function that rejects the promise.
- * @param {object} response The response.
- */
-module.exports = function settle(resolve, reject, response) {
-  var validateStatus = response.config.validateStatus;
-  // Note: status is not exposed by XDomainRequest
-  if (!response.status || !validateStatus || validateStatus(response.status)) {
-    resolve(response);
-  } else {
-    reject(response);
-  }
-};
-
-},{}],16:[function(require,module,exports){
-'use strict';
-
-/**
- * Syntactic sugar for invoking a function and expanding an array for arguments.
- *
- * Common use case would be to use `Function.prototype.apply`.
- *
- *  ```js
- *  function f(x, y, z) {}
- *  var args = [1, 2, 3];
- *  f.apply(null, args);
- *  ```
- *
- * With `spread` this example can be re-written.
- *
- *  ```js
- *  spread(function(x, y, z) {})([1, 2, 3]);
- *  ```
- *
- * @param {Function} callback
- * @returns {Function}
- */
-module.exports = function spread(callback) {
-  return function wrap(arr) {
-    return callback.apply(null, arr);
-  };
-};
-
-},{}],17:[function(require,module,exports){
-'use strict';
-
-var utils = require('./../utils');
-
-/**
- * Transform the data for a request or a response
- *
- * @param {Object|String} data The data to be transformed
- * @param {Array} headers The headers for the request or response
- * @param {Array|Function} fns A single function or Array of functions
- * @returns {*} The resulting transformed data
- */
-module.exports = function transformData(data, headers, fns) {
-  /*eslint no-param-reassign:0*/
-  utils.forEach(fns, function transform(fn) {
-    data = fn(data, headers);
-  });
-
-  return data;
-};
-
-},{"./../utils":18}],18:[function(require,module,exports){
-'use strict';
-
-/*global toString:true*/
-
-// utils is a library of generic helper functions non-specific to axios
-
-var toString = Object.prototype.toString;
-
-/**
- * Determine if a value is an Array
- *
- * @param {Object} val The value to test
- * @returns {boolean} True if value is an Array, otherwise false
- */
-function isArray(val) {
-  return toString.call(val) === '[object Array]';
-}
-
-/**
- * Determine if a value is an ArrayBuffer
- *
- * @param {Object} val The value to test
- * @returns {boolean} True if value is an ArrayBuffer, otherwise false
- */
-function isArrayBuffer(val) {
-  return toString.call(val) === '[object ArrayBuffer]';
-}
-
-/**
- * Determine if a value is a FormData
- *
- * @param {Object} val The value to test
- * @returns {boolean} True if value is an FormData, otherwise false
- */
-function isFormData(val) {
-  return toString.call(val) === '[object FormData]';
-}
-
-/**
- * Determine if a value is a view on an ArrayBuffer
- *
- * @param {Object} val The value to test
- * @returns {boolean} True if value is a view on an ArrayBuffer, otherwise false
- */
-function isArrayBufferView(val) {
-  var result;
-  if ((typeof ArrayBuffer !== 'undefined') && (ArrayBuffer.isView)) {
-    result = ArrayBuffer.isView(val);
-  } else {
-    result = (val) && (val.buffer) && (val.buffer instanceof ArrayBuffer);
-  }
-  return result;
-}
-
-/**
- * Determine if a value is a String
- *
- * @param {Object} val The value to test
- * @returns {boolean} True if value is a String, otherwise false
- */
-function isString(val) {
-  return typeof val === 'string';
-}
-
-/**
- * Determine if a value is a Number
- *
- * @param {Object} val The value to test
- * @returns {boolean} True if value is a Number, otherwise false
- */
-function isNumber(val) {
-  return typeof val === 'number';
-}
-
-/**
- * Determine if a value is undefined
- *
- * @param {Object} val The value to test
- * @returns {boolean} True if the value is undefined, otherwise false
- */
-function isUndefined(val) {
-  return typeof val === 'undefined';
-}
-
-/**
- * Determine if a value is an Object
- *
- * @param {Object} val The value to test
- * @returns {boolean} True if value is an Object, otherwise false
- */
-function isObject(val) {
-  return val !== null && typeof val === 'object';
-}
-
-/**
- * Determine if a value is a Date
- *
- * @param {Object} val The value to test
- * @returns {boolean} True if value is a Date, otherwise false
- */
-function isDate(val) {
-  return toString.call(val) === '[object Date]';
-}
-
-/**
- * Determine if a value is a File
- *
- * @param {Object} val The value to test
- * @returns {boolean} True if value is a File, otherwise false
- */
-function isFile(val) {
-  return toString.call(val) === '[object File]';
-}
-
-/**
- * Determine if a value is a Blob
- *
- * @param {Object} val The value to test
- * @returns {boolean} True if value is a Blob, otherwise false
- */
-function isBlob(val) {
-  return toString.call(val) === '[object Blob]';
-}
-
-/**
- * Determine if a value is a Function
- *
- * @param {Object} val The value to test
- * @returns {boolean} True if value is a Function, otherwise false
- */
-function isFunction(val) {
-  return toString.call(val) === '[object Function]';
-}
-
-/**
- * Determine if a value is a Stream
- *
- * @param {Object} val The value to test
- * @returns {boolean} True if value is a Stream, otherwise false
- */
-function isStream(val) {
-  return isObject(val) && isFunction(val.pipe);
-}
-
-/**
- * Trim excess whitespace off the beginning and end of a string
- *
- * @param {String} str The String to trim
- * @returns {String} The String freed of excess whitespace
- */
-function trim(str) {
-  return str.replace(/^\s*/, '').replace(/\s*$/, '');
-}
-
-/**
- * Determine if we're running in a standard browser environment
- *
- * This allows axios to run in a web worker, and react-native.
- * Both environments support XMLHttpRequest, but not fully standard globals.
- *
- * web workers:
- *  typeof window -> undefined
- *  typeof document -> undefined
- *
- * react-native:
- *  typeof document.createElement -> undefined
- */
-function isStandardBrowserEnv() {
-  return (
-    typeof window !== 'undefined' &&
-    typeof document !== 'undefined' &&
-    typeof document.createElement === 'function'
-  );
-}
-
-/**
- * Iterate over an Array or an Object invoking a function for each item.
- *
- * If `obj` is an Array callback will be called passing
- * the value, index, and complete array for each item.
- *
- * If 'obj' is an Object callback will be called passing
- * the value, key, and complete object for each property.
- *
- * @param {Object|Array} obj The object to iterate
- * @param {Function} fn The callback to invoke for each item
- */
-function forEach(obj, fn) {
-  // Don't bother if no value provided
-  if (obj === null || typeof obj === 'undefined') {
-    return;
-  }
-
-  // Force an array if not already something iterable
-  if (typeof obj !== 'object' && !isArray(obj)) {
-    /*eslint no-param-reassign:0*/
-    obj = [obj];
-  }
-
-  if (isArray(obj)) {
-    // Iterate over array values
-    for (var i = 0, l = obj.length; i < l; i++) {
-      fn.call(null, obj[i], i, obj);
-    }
-  } else {
-    // Iterate over object keys
-    for (var key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        fn.call(null, obj[key], key, obj);
-      }
-    }
-  }
-}
-
-/**
- * Accepts varargs expecting each argument to be an object, then
- * immutably merges the properties of each object and returns result.
- *
- * When multiple objects contain the same key the later object in
- * the arguments list will take precedence.
- *
- * Example:
- *
- * ```js
- * var result = merge({foo: 123}, {foo: 456});
- * console.log(result.foo); // outputs 456
- * ```
- *
- * @param {Object} obj1 Object to merge
- * @returns {Object} Result of all merge properties
- */
-function merge(/* obj1, obj2, obj3, ... */) {
-  var result = {};
-  function assignValue(val, key) {
-    if (typeof result[key] === 'object' && typeof val === 'object') {
-      result[key] = merge(result[key], val);
-    } else {
-      result[key] = val;
-    }
-  }
-
-  for (var i = 0, l = arguments.length; i < l; i++) {
-    forEach(arguments[i], assignValue);
-  }
-  return result;
-}
-
-module.exports = {
-  isArray: isArray,
-  isArrayBuffer: isArrayBuffer,
-  isFormData: isFormData,
-  isArrayBufferView: isArrayBufferView,
-  isString: isString,
-  isNumber: isNumber,
-  isObject: isObject,
-  isUndefined: isUndefined,
-  isDate: isDate,
-  isFile: isFile,
-  isBlob: isBlob,
-  isFunction: isFunction,
-  isStream: isStream,
-  isStandardBrowserEnv: isStandardBrowserEnv,
-  forEach: forEach,
-  merge: merge,
-  trim: trim
-};
-
-},{}],19:[function(require,module,exports){
 "use strict";
 
 /**
@@ -1140,7 +36,7 @@ emptyFunction.thatReturnsArgument = function (arg) {
 };
 
 module.exports = emptyFunction;
-},{}],20:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 (function (process){
 /**
  * Copyright (c) 2013-present, Facebook, Inc.
@@ -1162,7 +58,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = emptyObject;
 }).call(this,require('_process'))
-},{"_process":33}],21:[function(require,module,exports){
+},{"_process":15}],3:[function(require,module,exports){
 (function (process){
 /**
  * Copyright (c) 2013-present, Facebook, Inc.
@@ -1214,7 +110,7 @@ function invariant(condition, format, a, b, c, d, e, f) {
 
 module.exports = invariant;
 }).call(this,require('_process'))
-},{"_process":33}],22:[function(require,module,exports){
+},{"_process":15}],4:[function(require,module,exports){
 (function (process){
 /**
  * Copyright (c) 2013-present, Facebook, Inc.
@@ -1264,7 +160,7 @@ var keyMirror = function (obj) {
 
 module.exports = keyMirror;
 }).call(this,require('_process'))
-},{"./invariant":21,"_process":33}],23:[function(require,module,exports){
+},{"./invariant":3,"_process":15}],5:[function(require,module,exports){
 "use strict";
 
 /**
@@ -1299,7 +195,7 @@ var keyOf = function (oneKeyObj) {
 };
 
 module.exports = keyOf;
-},{}],24:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 /**
  * Copyright (c) 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -1350,7 +246,7 @@ function mapObject(object, callback, context) {
 }
 
 module.exports = mapObject;
-},{}],25:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2014-2015, Facebook, Inc.
@@ -1409,7 +305,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = warning;
 }).call(this,require('_process'))
-},{"./emptyFunction":19,"_process":33}],26:[function(require,module,exports){
+},{"./emptyFunction":1,"_process":15}],8:[function(require,module,exports){
 /**
  * Copyright 2015, Yahoo! Inc.
  * Copyrights licensed under the New BSD License. See the accompanying LICENSE file for terms.
@@ -1451,7 +347,7 @@ module.exports = function hoistNonReactStatics(targetComponent, sourceComponent)
     return targetComponent;
 };
 
-},{}],27:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -1506,7 +402,7 @@ var invariant = function(condition, format, a, b, c, d, e, f) {
 module.exports = invariant;
 
 }).call(this,require('_process'))
-},{"_process":33}],28:[function(require,module,exports){
+},{"_process":15}],10:[function(require,module,exports){
 /* Built-in method references for those with the same name as other `lodash` methods. */
 var nativeGetPrototype = Object.getPrototypeOf;
 
@@ -1523,7 +419,7 @@ function getPrototype(value) {
 
 module.exports = getPrototype;
 
-},{}],29:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 /**
  * Checks if `value` is a host object in IE < 9.
  *
@@ -1545,7 +441,7 @@ function isHostObject(value) {
 
 module.exports = isHostObject;
 
-},{}],30:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 /**
  * Checks if `value` is object-like. A value is object-like if it's not `null`
  * and has a `typeof` result of "object".
@@ -1576,7 +472,7 @@ function isObjectLike(value) {
 
 module.exports = isObjectLike;
 
-},{}],31:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 var getPrototype = require('./_getPrototype'),
     isHostObject = require('./_isHostObject'),
     isObjectLike = require('./isObjectLike');
@@ -1648,7 +544,7 @@ function isPlainObject(value) {
 
 module.exports = isPlainObject;
 
-},{"./_getPrototype":28,"./_isHostObject":29,"./isObjectLike":30}],32:[function(require,module,exports){
+},{"./_getPrototype":10,"./_isHostObject":11,"./isObjectLike":12}],14:[function(require,module,exports){
 'use strict';
 /* eslint-disable no-unused-vars */
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -1733,7 +629,7 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 	return to;
 };
 
-},{}],33:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -1826,7 +722,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],34:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -1907,7 +803,7 @@ Provider.childContextTypes = {
   store: _storeShape2["default"].isRequired
 };
 }).call(this,require('_process'))
-},{"../utils/storeShape":38,"../utils/warning":39,"_process":33,"react":63}],35:[function(require,module,exports){
+},{"../utils/storeShape":20,"../utils/warning":21,"_process":15,"react":45}],17:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -2303,7 +1199,7 @@ function connect(mapStateToProps, mapDispatchToProps, mergeProps) {
   };
 }
 }).call(this,require('_process'))
-},{"../utils/shallowEqual":37,"../utils/storeShape":38,"../utils/warning":39,"../utils/wrapActionCreators":40,"_process":33,"hoist-non-react-statics":26,"invariant":27,"lodash/isPlainObject":31,"react":63}],36:[function(require,module,exports){
+},{"../utils/shallowEqual":19,"../utils/storeShape":20,"../utils/warning":21,"../utils/wrapActionCreators":22,"_process":15,"hoist-non-react-statics":8,"invariant":9,"lodash/isPlainObject":13,"react":45}],18:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2321,7 +1217,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "d
 
 exports.Provider = _Provider2["default"];
 exports.connect = _connect2["default"];
-},{"./components/Provider":34,"./components/connect":35}],37:[function(require,module,exports){
+},{"./components/Provider":16,"./components/connect":17}],19:[function(require,module,exports){
 "use strict";
 
 exports.__esModule = true;
@@ -2348,7 +1244,7 @@ function shallowEqual(objA, objB) {
 
   return true;
 }
-},{}],38:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2360,7 +1256,7 @@ exports["default"] = _react.PropTypes.shape({
   dispatch: _react.PropTypes.func.isRequired,
   getState: _react.PropTypes.func.isRequired
 });
-},{"react":63}],39:[function(require,module,exports){
+},{"react":45}],21:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2385,7 +1281,7 @@ function warning(message) {
   } catch (e) {}
   /* eslint-enable no-empty */
 }
-},{}],40:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2398,7 +1294,7 @@ function wrapActionCreators(actionCreators) {
     return (0, _redux.bindActionCreators)(actionCreators, dispatch);
   };
 }
-},{"redux":69}],41:[function(require,module,exports){
+},{"redux":51}],23:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -2457,7 +1353,7 @@ var KeyEscapeUtils = {
 };
 
 module.exports = KeyEscapeUtils;
-},{}],42:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -2579,7 +1475,7 @@ var PooledClass = {
 
 module.exports = PooledClass;
 }).call(this,require('_process'))
-},{"_process":33,"fbjs/lib/invariant":21}],43:[function(require,module,exports){
+},{"_process":15,"fbjs/lib/invariant":3}],25:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -2669,7 +1565,7 @@ var React = {
 
 module.exports = React;
 }).call(this,require('_process'))
-},{"./ReactChildren":44,"./ReactClass":45,"./ReactComponent":46,"./ReactDOMFactories":48,"./ReactElement":50,"./ReactElementValidator":51,"./ReactPropTypes":57,"./ReactVersion":58,"./onlyChild":61,"_process":33,"fbjs/lib/warning":25,"object-assign":32}],44:[function(require,module,exports){
+},{"./ReactChildren":26,"./ReactClass":27,"./ReactComponent":28,"./ReactDOMFactories":30,"./ReactElement":32,"./ReactElementValidator":33,"./ReactPropTypes":39,"./ReactVersion":40,"./onlyChild":43,"_process":15,"fbjs/lib/warning":7,"object-assign":14}],26:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -2853,7 +1749,7 @@ var ReactChildren = {
 };
 
 module.exports = ReactChildren;
-},{"./PooledClass":42,"./ReactElement":50,"./traverseAllChildren":62,"fbjs/lib/emptyFunction":19}],45:[function(require,module,exports){
+},{"./PooledClass":24,"./ReactElement":32,"./traverseAllChildren":44,"fbjs/lib/emptyFunction":1}],27:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -3579,7 +2475,7 @@ var ReactClass = {
 
 module.exports = ReactClass;
 }).call(this,require('_process'))
-},{"./ReactComponent":46,"./ReactElement":50,"./ReactNoopUpdateQueue":54,"./ReactPropTypeLocationNames":55,"./ReactPropTypeLocations":56,"_process":33,"fbjs/lib/emptyObject":20,"fbjs/lib/invariant":21,"fbjs/lib/keyMirror":22,"fbjs/lib/keyOf":23,"fbjs/lib/warning":25,"object-assign":32}],46:[function(require,module,exports){
+},{"./ReactComponent":28,"./ReactElement":32,"./ReactNoopUpdateQueue":36,"./ReactPropTypeLocationNames":37,"./ReactPropTypeLocations":38,"_process":15,"fbjs/lib/emptyObject":2,"fbjs/lib/invariant":3,"fbjs/lib/keyMirror":4,"fbjs/lib/keyOf":5,"fbjs/lib/warning":7,"object-assign":14}],28:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -3703,7 +2599,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = ReactComponent;
 }).call(this,require('_process'))
-},{"./ReactInstrumentation":52,"./ReactNoopUpdateQueue":54,"./canDefineProperty":59,"_process":33,"fbjs/lib/emptyObject":20,"fbjs/lib/invariant":21,"fbjs/lib/warning":25}],47:[function(require,module,exports){
+},{"./ReactInstrumentation":34,"./ReactNoopUpdateQueue":36,"./canDefineProperty":41,"_process":15,"fbjs/lib/emptyObject":2,"fbjs/lib/invariant":3,"fbjs/lib/warning":7}],29:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -3735,7 +2631,7 @@ var ReactCurrentOwner = {
 };
 
 module.exports = ReactCurrentOwner;
-},{}],48:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -3914,7 +2810,7 @@ var ReactDOMFactories = mapObject({
 
 module.exports = ReactDOMFactories;
 }).call(this,require('_process'))
-},{"./ReactElement":50,"./ReactElementValidator":51,"_process":33,"fbjs/lib/mapObject":24}],49:[function(require,module,exports){
+},{"./ReactElement":32,"./ReactElementValidator":33,"_process":15,"fbjs/lib/mapObject":6}],31:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2016-present, Facebook, Inc.
@@ -3989,7 +2885,7 @@ ReactDebugTool.addDevtool(ReactInvalidSetStateWarningDevTool);
 
 module.exports = ReactDebugTool;
 }).call(this,require('_process'))
-},{"./ReactInvalidSetStateWarningDevTool":53,"_process":33,"fbjs/lib/warning":25}],50:[function(require,module,exports){
+},{"./ReactInvalidSetStateWarningDevTool":35,"_process":15,"fbjs/lib/warning":7}],32:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2014-present, Facebook, Inc.
@@ -4279,7 +3175,7 @@ ReactElement.isValidElement = function (object) {
 
 module.exports = ReactElement;
 }).call(this,require('_process'))
-},{"./ReactCurrentOwner":47,"./canDefineProperty":59,"_process":33,"fbjs/lib/warning":25,"object-assign":32}],51:[function(require,module,exports){
+},{"./ReactCurrentOwner":29,"./canDefineProperty":41,"_process":15,"fbjs/lib/warning":7,"object-assign":14}],33:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2014-present, Facebook, Inc.
@@ -4563,7 +3459,7 @@ var ReactElementValidator = {
 
 module.exports = ReactElementValidator;
 }).call(this,require('_process'))
-},{"./ReactCurrentOwner":47,"./ReactElement":50,"./ReactPropTypeLocationNames":55,"./ReactPropTypeLocations":56,"./canDefineProperty":59,"./getIteratorFn":60,"_process":33,"fbjs/lib/invariant":21,"fbjs/lib/warning":25}],52:[function(require,module,exports){
+},{"./ReactCurrentOwner":29,"./ReactElement":32,"./ReactPropTypeLocationNames":37,"./ReactPropTypeLocations":38,"./canDefineProperty":41,"./getIteratorFn":42,"_process":15,"fbjs/lib/invariant":3,"fbjs/lib/warning":7}],34:[function(require,module,exports){
 /**
  * Copyright 2016-present, Facebook, Inc.
  * All rights reserved.
@@ -4580,7 +3476,7 @@ module.exports = ReactElementValidator;
 var ReactDebugTool = require('./ReactDebugTool');
 
 module.exports = { debugTool: ReactDebugTool };
-},{"./ReactDebugTool":49}],53:[function(require,module,exports){
+},{"./ReactDebugTool":31}],35:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2016-present, Facebook, Inc.
@@ -4619,7 +3515,7 @@ var ReactInvalidSetStateWarningDevTool = {
 
 module.exports = ReactInvalidSetStateWarningDevTool;
 }).call(this,require('_process'))
-},{"_process":33,"fbjs/lib/warning":25}],54:[function(require,module,exports){
+},{"_process":15,"fbjs/lib/warning":7}],36:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2015-present, Facebook, Inc.
@@ -4717,7 +3613,7 @@ var ReactNoopUpdateQueue = {
 
 module.exports = ReactNoopUpdateQueue;
 }).call(this,require('_process'))
-},{"_process":33,"fbjs/lib/warning":25}],55:[function(require,module,exports){
+},{"_process":15,"fbjs/lib/warning":7}],37:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -4744,7 +3640,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = ReactPropTypeLocationNames;
 }).call(this,require('_process'))
-},{"_process":33}],56:[function(require,module,exports){
+},{"_process":15}],38:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -4767,7 +3663,7 @@ var ReactPropTypeLocations = keyMirror({
 });
 
 module.exports = ReactPropTypeLocations;
-},{"fbjs/lib/keyMirror":22}],57:[function(require,module,exports){
+},{"fbjs/lib/keyMirror":4}],39:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -5148,7 +4044,7 @@ function getClassName(propValue) {
 }
 
 module.exports = ReactPropTypes;
-},{"./ReactElement":50,"./ReactPropTypeLocationNames":55,"./getIteratorFn":60,"fbjs/lib/emptyFunction":19}],58:[function(require,module,exports){
+},{"./ReactElement":32,"./ReactPropTypeLocationNames":37,"./getIteratorFn":42,"fbjs/lib/emptyFunction":1}],40:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -5163,7 +4059,7 @@ module.exports = ReactPropTypes;
 'use strict';
 
 module.exports = '15.0.2';
-},{}],59:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -5190,7 +4086,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = canDefineProperty;
 }).call(this,require('_process'))
-},{"_process":33}],60:[function(require,module,exports){
+},{"_process":15}],42:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -5231,7 +4127,7 @@ function getIteratorFn(maybeIterable) {
 }
 
 module.exports = getIteratorFn;
-},{}],61:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -5267,7 +4163,7 @@ function onlyChild(children) {
 
 module.exports = onlyChild;
 }).call(this,require('_process'))
-},{"./ReactElement":50,"_process":33,"fbjs/lib/invariant":21}],62:[function(require,module,exports){
+},{"./ReactElement":32,"_process":15,"fbjs/lib/invariant":3}],44:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -5428,12 +4324,12 @@ function traverseAllChildren(children, callback, traverseContext) {
 
 module.exports = traverseAllChildren;
 }).call(this,require('_process'))
-},{"./KeyEscapeUtils":41,"./ReactCurrentOwner":47,"./ReactElement":50,"./getIteratorFn":60,"_process":33,"fbjs/lib/invariant":21,"fbjs/lib/warning":25}],63:[function(require,module,exports){
+},{"./KeyEscapeUtils":23,"./ReactCurrentOwner":29,"./ReactElement":32,"./getIteratorFn":42,"_process":15,"fbjs/lib/invariant":3,"fbjs/lib/warning":7}],45:[function(require,module,exports){
 'use strict';
 
 module.exports = require('./lib/React');
 
-},{"./lib/React":43}],64:[function(require,module,exports){
+},{"./lib/React":25}],46:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -5492,7 +4388,7 @@ function applyMiddleware() {
     };
   };
 }
-},{"./compose":67}],65:[function(require,module,exports){
+},{"./compose":49}],47:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -5544,7 +4440,7 @@ function bindActionCreators(actionCreators, dispatch) {
   }
   return boundActionCreators;
 }
-},{}],66:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -5674,7 +4570,7 @@ function combineReducers(reducers) {
   };
 }
 }).call(this,require('_process'))
-},{"./createStore":68,"./utils/warning":70,"_process":33,"lodash/isPlainObject":31}],67:[function(require,module,exports){
+},{"./createStore":50,"./utils/warning":52,"_process":15,"lodash/isPlainObject":13}],49:[function(require,module,exports){
 "use strict";
 
 exports.__esModule = true;
@@ -5715,7 +4611,7 @@ function compose() {
     if (typeof _ret === "object") return _ret.v;
   }
 }
-},{}],68:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -5978,7 +4874,7 @@ function createStore(reducer, initialState, enhancer) {
     replaceReducer: replaceReducer
   }, _ref2[_symbolObservable2["default"]] = observable, _ref2;
 }
-},{"lodash/isPlainObject":31,"symbol-observable":71}],69:[function(require,module,exports){
+},{"lodash/isPlainObject":13,"symbol-observable":53}],51:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -6027,7 +4923,7 @@ exports.bindActionCreators = _bindActionCreators2["default"];
 exports.applyMiddleware = _applyMiddleware2["default"];
 exports.compose = _compose2["default"];
 }).call(this,require('_process'))
-},{"./applyMiddleware":64,"./bindActionCreators":65,"./combineReducers":66,"./compose":67,"./createStore":68,"./utils/warning":70,"_process":33}],70:[function(require,module,exports){
+},{"./applyMiddleware":46,"./bindActionCreators":47,"./combineReducers":48,"./compose":49,"./createStore":50,"./utils/warning":52,"_process":15}],52:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -6053,7 +4949,7 @@ function warning(message) {
   } catch (e) {}
   /* eslint-enable no-empty */
 }
-},{}],71:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 (function (global){
 /* global window */
 'use strict';
@@ -6061,7 +4957,7 @@ function warning(message) {
 module.exports = require('./ponyfill')(global || window || this);
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./ponyfill":72}],72:[function(require,module,exports){
+},{"./ponyfill":54}],54:[function(require,module,exports){
 'use strict';
 
 module.exports = function symbolObservablePonyfill(root) {
@@ -6082,7 +4978,7 @@ module.exports = function symbolObservablePonyfill(root) {
 	return result;
 };
 
-},{}],73:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 'use strict';
 
 var _reactRedux = require('react-redux');
@@ -6105,22 +5001,23 @@ var _documentDisplayComponent = require('./documentDisplay/documentDisplayCompon
 
 var _documentDisplayComponent2 = _interopRequireDefault(_documentDisplayComponent);
 
-var _axios = require('axios');
+var _mockDataForDemo = require('./mockDataForDemo.js');
 
-var _axios2 = _interopRequireDefault(_axios);
+var _mockDataForDemo2 = _interopRequireDefault(_mockDataForDemo);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var store = (0, _redux.createStore)(_index2.default);
 
+// import axios from 'axios';
+
 var App = React.createClass({
   displayName: 'App',
   componentDidMount: function componentDidMount() {
-    var _this = this;
-
-    _axios2.default.get('/reports').then(function (data) {
-      _this.props.receiveReports(data.data);
-    });
+    // axios.get('/reports').then( (data) => {
+    //   this.props.receiveReports(data.data);
+    // });
+    this.props.receiveReports(_mockDataForDemo2.default);
   },
   render: function render() {
     return React.createElement(
@@ -6173,7 +5070,7 @@ ReactDOM.render(React.createElement(
   React.createElement(ConnectedApp, null)
 ), document.getElementById('app'));
 
-},{"./documentDisplay/documentDisplayComponent.js":74,"./list/listComponent.js":75,"./reducers/index.js":77,"./searchBar/searchBarComponent.js":80,"axios":1,"react-redux":36,"redux":69}],74:[function(require,module,exports){
+},{"./documentDisplay/documentDisplayComponent.js":56,"./list/listComponent.js":57,"./mockDataForDemo.js":58,"./reducers/index.js":60,"./searchBar/searchBarComponent.js":63,"react-redux":18,"redux":51}],56:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -6242,7 +5139,7 @@ exports.default = (0, _reactRedux.connect)(mapStateToProps)(DocumentDisplay);
 //   background-repeat: no-repeat;
 //   background-position: 90% 90%;
 
-},{"react-redux":36}],75:[function(require,module,exports){
+},{"react-redux":18}],57:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -6331,7 +5228,75 @@ function mapDispatchToProps(dispatch) {
 
 exports.default = (0, _reactRedux.connect)(mapStateToProps, mapDispatchToProps)(List);
 
-},{"react-redux":36,"redux":69}],76:[function(require,module,exports){
+},{"react-redux":18,"redux":51}],58:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = [{
+  "id": "ea1791a4-7ad9-4d12-aaa1-c4ec67375134",
+  "created": "2015-12-22T21:24:05.444Z",
+  "updated": "2015-12-22T21:24:05.444Z",
+  "title": "Rerum a doloribus qui sed vel earum.",
+  "body": "Et accusantium rerum voluptas nulla nisi nobis et cum. Architecto quod recusandae dicta. Amet placeat dolor aut. Numquam ducimus soluta deleniti dolores aut quia nemo cupiditate.\n \rSapiente aut et reprehenderit eum. Quia est commodi possimus optio necessitatibus vel ut facilis cumque. Quo molestiae quia voluptas consectetur voluptates sit dolorum excepturi incidunt.\n \rCommodi ut molestiae sapiente temporibus iusto. Nihil dolorem autem velit voluptate adipisci. Dolorum iure qui nesciunt et molestias omnis. Rerum ut assumenda. Beatae quia explicabo natus architecto iure ea. Voluptatem dolorem quis repudiandae asperiores voluptas consequatur ratione adipisci aliquam."
+}, {
+  "id": "34544003-2760-4b4d-9292-30668f4f1687",
+  "created": "2015-05-22T20:16:17.344Z",
+  "updated": "2015-05-22T20:16:17.344Z",
+  "title": "Quo minus nisi similique doloremque id laborum.",
+  "body": "Rerum tenetur aut. Distinctio numquam est ipsam est voluptatum aliquam. Inventore ea perspiciatis. Sed ipsa et iure quos ut quaerat.\n \rConsequatur sit quos nesciunt. Aliquam quos quo animi expedita. Dolorum quae inventore provident aut. Ipsam tempora sit iure quo recusandae id deserunt. Consequatur ipsam dolorum quae saepe laudantium. Et impedit ab magni explicabo aspernatur.\n \rOdit id consequatur autem nam. Molestiae quibusdam in eligendi enim voluptatem cupiditate sed enim. Repellendus sit nemo soluta quisquam aspernatur."
+}, {
+  "id": "4515888e-eb95-46ba-9908-6247f7639649",
+  "created": "2015-07-21T22:33:48.829Z",
+  "updated": "2015-07-21T22:33:48.829Z",
+  "title": "Et neque est est expedita eius id adipisci eum.",
+  "body": "Reprehenderit quam consequatur dolor illo veniam. Consequatur tempora consequatur enim quis praesentium. Inventore sequi voluptatem perferendis quia quasi quae aut. Dolores et recusandae dolore tenetur voluptates.\n \rVelit dolorem ut eius est atque dolorem. Temporibus veritatis sint omnis in veritatis. Ad quia quam dolor. Et molestias corrupti omnis eum laudantium.\n \rCommodi dolores quo unde et temporibus at iure. Magnam corporis cumque modi quo sapiente adipisci dolor omnis quo. Eius qui illum. Consectetur numquam nemo minus eius sed."
+}, {
+  "id": "2bccebd7-4c48-488e-a739-9929afc28c45",
+  "created": "2016-02-19T21:51:06.627Z",
+  "updated": "2016-02-19T21:51:06.627Z",
+  "title": "Aspernatur iste et laborum.",
+  "body": "Alias numquam voluptates quidem hic rerum doloremque. Voluptatem temporibus est et est. Excepturi numquam eos quisquam aut reiciendis. Officiis aspernatur minus hic velit cupiditate adipisci et.\n \rEt non consequatur in. Voluptatem temporibus ut. Est voluptate quasi architecto cupiditate dolores non nihil. Est nesciunt ut et quas excepturi. Nulla sed labore corporis ipsam natus quisquam amet.\n \rCumque aliquid totam et quam dolorem ut harum autem. Aperiam aliquid laborum aperiam expedita adipisci. Ut laborum nisi repudiandae magnam optio minima. Cumque similique nesciunt commodi aut quia nesciunt aspernatur accusantium. Aut laudantium alias est dolorum porro modi rerum cumque consequatur. Nam alias quia tempore vel molestiae beatae quia placeat."
+}, {
+  "id": "abfdaa98-8c07-4f7c-8150-96ba980137ad",
+  "created": "2015-06-30T04:12:22.951Z",
+  "updated": "2015-06-30T04:12:22.951Z",
+  "title": "Tempora nemo libero tenetur quis dolor beatae ut.",
+  "body": "Eum iusto iste vitae et alias. Fugiat omnis voluptatum harum voluptas autem iusto voluptatem. Nihil eos sit unde maiores provident aliquam vero. Totam nihil odit non enim dolorum repellendus. Quod voluptatum adipisci repellendus voluptatem consequatur ut hic. Atque rerum dolorem.\n \rAnimi omnis laudantium beatae qui. Consequatur dolorem quo velit dolor sed accusantium earum. Commodi sed necessitatibus. Quos et ut unde quod voluptas sint perferendis natus. Quisquam at provident eaque atque necessitatibus voluptatibus quaerat odio. Sed laborum velit.\n \rNihil deserunt ut voluptatum distinctio aliquam necessitatibus qui. Quia modi expedita vel illo ab perferendis corporis. Quia esse sunt. Ex aut voluptatem nihil est sit voluptatem quas esse a."
+}, {
+  "id": "8e28a4e5-c39a-407d-938e-7131a361512b",
+  "created": "2015-07-02T08:18:56.693Z",
+  "updated": "2015-07-02T08:18:56.693Z",
+  "title": "Et eos explicabo sit sapiente expedita.",
+  "body": "Sunt harum molestiae rem illum quasi numquam quia tenetur. Sit quos fuga. Temporibus ducimus nostrum quod molestiae et asperiores quis molestias consequatur. Id eius maiores aut doloribus qui. Sed autem debitis nobis odio.\n \rAut nam accusantium ea magnam odio et ipsam non sed. Aspernatur modi vitae. Consequatur culpa officiis excepturi quos quidem in. Quidem quia vitae.\n \rSunt voluptatum dicta adipisci. Et impedit blanditiis. Voluptatem delectus molestiae. Ut excepturi ut excepturi. Quam nulla mollitia eos aut rem. Et sequi quam repellat ducimus ut et id atque vel."
+}, {
+  "id": "b21ed461-3e8e-4279-a7b5-5ee2e67cda93",
+  "created": "2016-03-13T09:50:03.239Z",
+  "updated": "2016-03-13T09:50:03.239Z",
+  "title": "Non autem sequi omnis fugit voluptates molestiae corporis.",
+  "body": "Sunt enim labore. Magnam voluptas eos. Rerum maiores eius eaque aut accusantium non. Reiciendis eveniet itaque sed delectus quaerat. Earum quia maxime eum eligendi perspiciatis ab quae. Praesentium quod sed molestiae veritatis enim est cumque.\n \rQuibusdam a qui voluptatem quia hic nulla ad. Et aspernatur sed distinctio placeat alias voluptas. Totam fugiat vitae eum. Velit animi aut. Qui quia et ducimus et et.\n \rVoluptatem tenetur eveniet mollitia. Nam fugiat sint exercitationem excepturi. Suscipit iure velit vero eveniet. Eos ad eum voluptatem minus aut amet. Cum ea est quas quia officia."
+}, {
+  "id": "1effaa32-2485-4c4f-8bfd-25d01e0784a4",
+  "created": "2015-11-29T22:17:30.374Z",
+  "updated": "2015-11-29T22:17:30.374Z",
+  "title": "Quod vel voluptas voluptas quo.",
+  "body": "Minus adipisci ut soluta repellendus nesciunt ut dolore autem dolores. Possimus eos sed qui aperiam quia delectus autem dignissimos. Rerum vitae et omnis assumenda consectetur voluptates cumque maxime. Enim id atque ut consequatur id quod debitis. Provident molestias repellat vero sint dolore explicabo. Fuga omnis dolor rem.\n \rQuis maiores aspernatur earum reiciendis harum. Voluptatum nihil qui voluptas deserunt et eveniet molestias fuga aut. Sit ut nulla voluptate omnis alias sapiente quia provident et. Sint vel unde magni. Aut et omnis accusantium fuga iure vitae maxime et. Laborum aliquam aut nulla quia dolore voluptate eveniet temporibus.\n \rEligendi quia suscipit quam eos id recusandae dolorum nobis neque. Aperiam ut soluta repudiandae accusantium labore quia eum. Quisquam magnam praesentium sequi odit sed hic omnis."
+}, {
+  "id": "084ca944-9847-4a14-9f86-13e533ca6153",
+  "created": "2015-09-24T22:27:22.714Z",
+  "updated": "2015-09-24T22:27:22.714Z",
+  "title": "Alias dolore deleniti.",
+  "body": "Numquam quia nisi ut velit et aut reiciendis id. Ex aut magni qui dicta voluptatem ut. Explicabo nostrum numquam et nisi voluptas molestiae. Officia eaque iusto totam.\n \rId quas voluptas. Quae similique dolorum deleniti praesentium pariatur esse exercitationem nihil nostrum. Debitis dolor deleniti nulla voluptatem culpa libero. Et reiciendis dicta doloremque labore reprehenderit quisquam. Amet et soluta nesciunt accusantium.\n \rNobis ut pariatur voluptas quia voluptatem. Provident est ut est architecto. Sunt soluta esse dolorem cumque suscipit rerum quasi provident atque. Eum praesentium voluptatem cum natus consectetur aut eligendi sed sequi. Quia et maiores distinctio ut laboriosam sed molestiae aut possimus. Autem sit sapiente eveniet molestiae."
+}, {
+  "id": "01e0f188-4133-47f1-9e0b-9269d8b1cfc0",
+  "created": "2015-08-26T13:12:05.782Z",
+  "updated": "2015-08-26T13:12:05.782Z",
+  "title": "Ullam vitae maiores rerum voluptate minus.",
+  "body": "Dolorum quidem autem animi ducimus et inventore dignissimos. Aut deserunt ut dolor id asperiores. Sunt asperiores delectus labore rerum laborum. Ab deserunt fugiat facere repellat et voluptate. Tenetur aut velit deleniti ut labore et quam sunt. Dignissimos placeat ad accusamus voluptatem ut modi ullam non.\n \rCommodi accusamus maxime ipsam dolores odio adipisci non. Et velit et. Impedit et ipsam officiis ratione quo aliquam. Est voluptate velit fugit eveniet illum. Dolores qui vel reprehenderit sit. Odio nostrum eum vel occaecati.\n \rTemporibus reiciendis soluta sint occaecati tempora aut. Veniam excepturi odio quam minima. Sequi repellendus quos tempore inventore pariatur qui molestiae libero et. Optio omnis consequatur est officiis."
+}];
+
+},{}],59:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -6348,7 +5313,7 @@ exports.default = function (previousState, action) {
 
 ;
 
-},{}],77:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -6381,7 +5346,7 @@ exports.default = (0, _redux.combineReducers)({
 // current list of reports or []
 // current filter/user input or ''
 
-},{"./curReportReducer.js":76,"./reportFilterReducer.js":78,"./reportsReducer.js":79,"redux":69}],78:[function(require,module,exports){
+},{"./curReportReducer.js":59,"./reportFilterReducer.js":61,"./reportsReducer.js":62,"redux":51}],61:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -6398,7 +5363,7 @@ exports.default = function (previousState, action) {
 
 ; //to keep track of what the current filter is
 
-},{}],79:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -6415,7 +5380,7 @@ exports.default = function (previousState, action) {
 
 ;
 
-},{}],80:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -6456,4 +5421,4 @@ function mapDispatchToProps(dispatch) {
 
 exports.default = (0, _reactRedux.connect)(null, mapDispatchToProps)(ReportFilter);
 
-},{"react-redux":36,"redux":69}]},{},[73,74,75,76,77,78,79,80]);
+},{"react-redux":18,"redux":51}]},{},[55,56,57,58,59,60,61,62,63]);

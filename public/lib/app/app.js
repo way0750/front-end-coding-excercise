@@ -10,14 +10,15 @@ let store = createStore(reducers);
 import SearchBar from './searchBar/searchBarComponent.js'
 import List from './list/listComponent.js';
 import DocumentDisplay from './documentDisplay/documentDisplayComponent.js'
-
-import axios from 'axios';
+import mockData from './mockDataForDemo.js';
+// import axios from 'axios';
 
 const App = React.createClass({
   componentDidMount() {
-    axios.get('/reports').then( (data) => {
-      this.props.receiveReports(data.data);
-    });
+    // axios.get('/reports').then( (data) => {
+    //   this.props.receiveReports(data.data);
+    // });
+    this.props.receiveReports(mockData);
   },
   render() {
     return (
