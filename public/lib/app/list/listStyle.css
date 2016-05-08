@@ -1,6 +1,7 @@
 .listOfReports{
   width: 30%;
-  overflow: scroll;
+  overflow-y: scroll;
+  overflow-x: hidden;
   height: 85.5%;
   list-style: none;
   float: left;
