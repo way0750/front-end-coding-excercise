@@ -6207,7 +6207,6 @@ var DocumentDisplay = React.createClass({
     }, 20);
   },
   render: function render() {
-    console.log('documentDisplay');
     if (this.props.curReport.body === undefined) {
       return React.createElement(
         'div',

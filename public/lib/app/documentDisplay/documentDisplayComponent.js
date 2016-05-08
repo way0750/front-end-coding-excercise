@@ -25,7 +25,6 @@ const DocumentDisplay = React.createClass({
     }, 20)
   },
   render () {
-    console.log('documentDisplay')
     if (this.props.curReport.body === undefined) {
       return (<div className="documentDisplay">
           <h1 className="noCurReport">{this.props.curReport.title}</h1>

@@ -23,6 +23,8 @@ body{
 }
 
 .logo{
-  background-position: 100% 100%;
-  background-repeat: no-repeat;
+  position: fixed;
+  right: 6em;
+  bottom: 2em;
+  width: 10em;
 }
