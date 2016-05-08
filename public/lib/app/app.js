@@ -13,8 +13,6 @@ import DocumentDisplay from './documentDisplay/documentDisplayComponent.js'
 
 import axios from 'axios';
 
-
-
 const App = React.createClass({
   componentDidMount() {
     axios.get('/reports').then( (data) => {
@@ -24,18 +22,12 @@ const App = React.createClass({
   render() {
     return (
       <div className='appView'>
-        <header>
-        <h1>reports: </h1>
+        <header className="banner">
           <SearchBar />
+          <h1> Security Briefing </h1>
         </header>
-
-        <div>
-
-          <List className="listOfReports" />
-
-          <DocumentDisplay className="documentDisplay" />
-        </div>
-
+        <List/>
+        <DocumentDisplay/>
       </div>
       );
     }

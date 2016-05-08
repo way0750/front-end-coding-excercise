@@ -6128,20 +6128,16 @@ var App = React.createClass({
       { className: 'appView' },
       React.createElement(
         'header',
-        null,
+        { className: 'banner' },
+        React.createElement(_searchBarComponent2.default, null),
         React.createElement(
           'h1',
           null,
-          'reports: '
-        ),
-        React.createElement(_searchBarComponent2.default, null)
+          ' Security Briefing '
+        )
       ),
-      React.createElement(
-        'div',
-        null,
-        React.createElement(_listComponent2.default, { className: 'listOfReports' }),
-        React.createElement(_documentDisplayComponent2.default, { className: 'documentDisplay' })
-      )
+      React.createElement(_listComponent2.default, null),
+      React.createElement(_documentDisplayComponent2.default, null)
     );
   }
 });
@@ -6179,13 +6175,13 @@ ReactDOM.render(React.createElement(
 // );
 
 },{"./documentDisplay/documentDisplayComponent.js":74,"./list/listComponent.js":75,"./reducers/index.js":77,"./searchBar/searchBarComponent.js":80,"axios":1,"react-redux":36,"redux":69}],74:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _reactRedux = require('react-redux');
+var _reactRedux = require("react-redux");
 
 function mapStateToProps(reduxState) {
   return {
@@ -6194,13 +6190,17 @@ function mapStateToProps(reduxState) {
 }
 
 var DocumentDisplay = React.createClass({
-  displayName: 'DocumentDisplay',
+  displayName: "DocumentDisplay",
   render: function render() {
     return React.createElement(
-      'div',
-      null,
-      ' ',
-      this.props.curReport.title
+      "div",
+      { className: "documentDisplay" },
+      React.createElement(
+        "h1",
+        null,
+        this.props.curReport.title
+      ),
+      this.props.curReport.body
     );
   }
 });
@@ -6229,7 +6229,6 @@ var List = React.createClass({
       return "\\" + match;
     });
     var filterRegExp = new RegExp(escapedInputString, 'i');
-    console.log(filterRegExp);
     return filterRegExp;
   },
   makeList: function makeList() {
@@ -6253,12 +6252,15 @@ var List = React.createClass({
     return reportsArr.map(function (ele, index) {
       return React.createElement(
         'li',
-        { key: index, onClick: function onClick() {
-            _this.props.viewDocument(ele);
-          } },
-        ' ',
-        ele.title,
-        ' '
+        { key: index },
+        React.createElement(
+          'button',
+          { onClick: function onClick() {
+              _this.props.viewDocument(ele);
+            } },
+          ' ',
+          ele.title
+        )
       );
     });
   },
@@ -6266,7 +6268,7 @@ var List = React.createClass({
     var reportList = this.makeList();
     return React.createElement(
       'ul',
-      null,
+      { className: 'listOfReports' },
       reportList.length ? reportList : ''
     );
   }
@@ -6305,7 +6307,7 @@ exports.default = function (previousState, action) {
   if (action.type === 'pickReport') {
     return action.payload;
   } else {
-    return previousState === undefined ? {} : previousState;
+    return previousState === undefined ? { title: 'No Report Selected' } : previousState;
   }
 };
 
@@ -6352,7 +6354,6 @@ Object.defineProperty(exports, "__esModule", {
 });
 
 exports.default = function (previousState, action) {
-  console.log('new filter?', action);
   if (action.type === 'updateFilter') {
     return action.payload;
   } else {
@@ -6370,7 +6371,6 @@ Object.defineProperty(exports, "__esModule", {
 });
 
 exports.default = function (previousState, action) {
-  // make sure to return previousState;
   if (action.type === 'receiveReports') {
     return action.payload;
   } else {
@@ -6397,6 +6397,7 @@ var ReportFilter = React.createClass({
     var _this = this;
 
     return React.createElement('input', {
+      className: 'filter',
       placeholder: 'enter filter here',
       onChange: function onChange(event) {
         _this.props.updateFilter(event.target.value);

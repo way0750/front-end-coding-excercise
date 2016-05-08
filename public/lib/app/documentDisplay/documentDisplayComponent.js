@@ -9,7 +9,10 @@ function mapStateToProps (reduxState) {
 const DocumentDisplay = React.createClass({
   
   render () {
-    return <div> {this.props.curReport.title}</div>
+    return (<div className="documentDisplay">
+      <h1>{this.props.curReport.title}</h1>
+      {this.props.curReport.body}
+      </div>)
   }  
 });
 

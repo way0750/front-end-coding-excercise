@@ -1,0 +1,11 @@
+.documentDisplay{
+  width: 70%;
+  height: 91%;
+  display: inline-block;
+  float: right;
+  box-sizing: border-box;
+  border-width: 0em 0em 2em 2em;
+  border-color: transparent;
+  border-style: solid;
+  overflow: scroll;
+}

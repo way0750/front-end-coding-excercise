@@ -12,7 +12,6 @@ const List = React.createClass({
       return "\\"+match;
     });
     let filterRegExp = new RegExp(escapedInputString, 'i');
-    console.log(filterRegExp);
     return filterRegExp;
   },
 
@@ -33,13 +32,15 @@ const List = React.createClass({
     });
 
     return reportsArr.map( (ele, index) => {
-      return <li key={index} onClick={ () => {this.props.viewDocument(ele)}}> {ele.title} </li>;
+      return (<li key={index}>
+        <button  onClick={ () => {this.props.viewDocument(ele)}}> {ele.title}</button>
+        </li>);
     });
   },
 
   render () {
     let reportList = this.makeList();
-    return (<ul>
+    return (<ul className="listOfReports">
           {reportList.length ? reportList : ''}
         </ul>);
   }

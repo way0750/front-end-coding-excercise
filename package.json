@@ -17,6 +17,7 @@
     "eslint": "^2.9.0",
     "eslint-config-airbnb-base": "^2.0.0",
     "eslint-plugin-import": "^1.6.1",
+    "grunt-contrib-concat": "^1.0.1",
     "nodemon": "^1.9.2"
   },
   "scripts": {

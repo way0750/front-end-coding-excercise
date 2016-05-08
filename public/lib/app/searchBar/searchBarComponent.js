@@ -5,7 +5,8 @@ import {connect} from 'react-redux';
 const ReportFilter = React.createClass({
   render(){
     return (
-      <input 
+      <input
+        className = "filter"
         placeholder="enter filter here"
         onChange={ (event) => {
           this.props.updateFilter(event.target.value)
