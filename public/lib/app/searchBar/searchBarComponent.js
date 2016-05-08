@@ -7,7 +7,7 @@ const ReportFilter = React.createClass({
     return (
       <input
         className = "filter"
-        placeholder="enter filter here"
+        placeholder = "Filter"
         onChange={ (event) => {
           this.props.updateFilter(event.target.value)
         }}

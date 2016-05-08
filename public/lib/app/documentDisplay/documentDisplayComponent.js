@@ -17,11 +17,11 @@ const DocumentDisplay = React.createClass({
     //doing these to animate report animation
     let title = ReactDOM.findDOMNode(this.DOMNode.children[0]);
     let body = ReactDOM.findDOMNode(this.DOMNode.children[1]);
-    title.className = 'documentTitle';
-    body.className = 'documentBody';
+    title.className = 'documentTitle hideDocument';
+    body.className = 'documentBody hideDocument';
     setTimeout( () => {
-      title.className = 'showDocument';
-      body.className = 'showDocument';
+      title.className = 'documentTitle showDocument';
+      body.className = 'documentBody showDocument';
     }, 20)
   },
   render () {

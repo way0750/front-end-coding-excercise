@@ -6199,11 +6199,11 @@ var DocumentDisplay = React.createClass({
     //doing these to animate report animation
     var title = ReactDOM.findDOMNode(this.DOMNode.children[0]);
     var body = ReactDOM.findDOMNode(this.DOMNode.children[1]);
-    title.className = 'documentTitle';
-    body.className = 'documentBody';
+    title.className = 'documentTitle hideDocument';
+    body.className = 'documentBody hideDocument';
     setTimeout(function () {
-      title.className = 'showDocument';
-      body.className = 'showDocument';
+      title.className = 'documentTitle showDocument';
+      body.className = 'documentBody showDocument';
     }, 20);
   },
   render: function render() {
@@ -6433,7 +6433,7 @@ var ReportFilter = React.createClass({
 
     return React.createElement('input', {
       className: 'filter',
-      placeholder: 'enter filter here',
+      placeholder: 'Filter',
       onChange: function onChange(event) {
         _this.props.updateFilter(event.target.value);
       }
