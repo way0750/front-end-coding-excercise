@@ -5010,6 +5010,10 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 var store = (0, _redux.createStore)(_index2.default);
 
 // import axios from 'axios';
+//
+// since we are using github to show demo, we can't run a node server on github.com
+// so we won't need axios to make http request
+// and we will simply hard code all reports in here
 
 var App = React.createClass({
   displayName: 'App',

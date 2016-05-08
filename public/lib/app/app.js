@@ -12,6 +12,10 @@ import List from './list/listComponent.js';
 import DocumentDisplay from './documentDisplay/documentDisplayComponent.js'
 import mockData from './mockDataForDemo.js';
 // import axios from 'axios';
+// 
+// since we are using github to show demo, we can't run a node server on github.com
+// so we won't need axios to make http request
+// and we will simply hard code all reports in here
 
 const App = React.createClass({
   componentDidMount() {
