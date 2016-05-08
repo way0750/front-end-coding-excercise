@@ -5,8 +5,6 @@
   font-family: sans-serif;
 }
 
-
-
 body{
   position: relative;
 }
@@ -15,6 +13,7 @@ body{
   position: relative;
   background-color: #4589fb;
   width: 80%;
+  min-width: 45em;
   height: 35em;
   border-radius: 1px;
   box-shadow: 0em 0em 0.5em 0em rgb(17, 44, 85);
@@ -27,6 +26,26 @@ body{
   right: 6em;
   bottom: 2em;
   width: 10em;
+}
+
+
+.banner {
+  position: relative;
+  /*background-image: -webkit-linear-gradient(0deg, rgb(0, 102, 102), rgb(0, 125, 124));*/
+  /*background-image: linear-gradient(0deg, rgb(0, 102, 102), rgb(0, 125, 124));*/
+  background-color: rgb(28, 85, 103);
+  color: rgba(235, 246, 250, 0.8);
+}
+
+
+.banner div {
+  display: inline-block;
+  height: 5em;
+  width: 100%;
+}
+.banner h1 {
+  width: 9em;
+  margin: 0.5em auto 0em auto;
 }
 
 .documentDisplay{
@@ -125,32 +144,12 @@ body{
   background-color: #b38600;
 }
 
-
-.banner {
-  position: relative;
-  /*background-image: -webkit-linear-gradient(0deg, rgb(0, 102, 102), rgb(0, 125, 124));*/
-  /*background-image: linear-gradient(0deg, rgb(0, 102, 102), rgb(0, 125, 124));*/
-  background-color: rgb(28, 85, 103);
-  color: rgba(235, 246, 250, 0.8);
-}
-
-
-.banner div {
-  display: inline-block;
-  height: 5em;
-  width: 100%;
-}
-.banner h1 {
-  width: 9em;
-  margin: 0.5em auto 0em auto;
-}
-
 .banner .filter {
   position: absolute;
-  top: 70%;
+  left: 1.5%;
+  top: 30%;
   height: 2em;
   border: none;
-  border-radius: 2px;
-  margin-left: 2em;
+  border-radius: 1px;
   width: 25%
 }

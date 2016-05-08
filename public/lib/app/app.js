@@ -23,8 +23,8 @@ const App = React.createClass({
     return (
       <div className='appView'>
         <header className="banner">
-          <SearchBar />
           <div><h1> Security Briefings </h1></div>
+          <SearchBar />
         </header>
         <List/>
         <DocumentDisplay/>

@@ -6129,7 +6129,6 @@ var App = React.createClass({
       React.createElement(
         'header',
         { className: 'banner' },
-        React.createElement(_searchBarComponent2.default, null),
         React.createElement(
           'div',
           null,
@@ -6138,7 +6137,8 @@ var App = React.createClass({
             null,
             ' Security Briefings '
           )
-        )
+        ),
+        React.createElement(_searchBarComponent2.default, null)
       ),
       React.createElement(_listComponent2.default, null),
       React.createElement(_documentDisplayComponent2.default, null)
