@@ -1,6 +1,6 @@
 :root {
-  background-image: -webkit-linear-gradient(0deg,#4589fb, #1b437a);
-  background-image: linear-gradient(0deg, #4589fb, #1b437a);
+  background-image: -webkit-linear-gradient(0deg,#4589fb, rgb(17, 44, 85));
+  background-image: linear-gradient(0deg, #4589fb, rgb(17, 44, 85));
   height: 100%;
   font-family: sans-serif;
 }
@@ -17,7 +17,7 @@ body{
   width: 80%;
   height: 35em;
   border-radius: 1px;
-  box-shadow: 0em 0em 0.5em 0em #1b437a;
+  box-shadow: 0em 0em 0.5em 0em rgb(17, 44, 85);
   margin: auto;
   margin-top: 2em;
 }
@@ -25,30 +25,6 @@ body{
 .logo{
   background-position: 100% 100%;
   background-repeat: no-repeat;
-}
-
-.banner {
-  position: relative;
-}
-
-.banner div {
-  display: inline-block;
-  height: 5em;
-  width: 100%;
-}
-.banner h1 {
-  width: 8.2em;
-  margin: 0.5em auto 0em auto;
-}
-
-.banner .filter {
-  position: absolute;
-  top: 70%;
-  height: 2em;
-  border: none;
-  border-radius: 2px;
-  margin-left: 2em;
-  width: 25%
 }
 
 .documentDisplay{
@@ -63,11 +39,50 @@ body{
   overflow: scroll;
 }
 
+.documentDisplay > * {
+  position: relative;
+}
+
 .noCurReport{
   display: block;
   margin: 5em auto 0em auto;
   width: 50%;
 }
+
+@keyframes displayDocument {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+    left: 0em;
+  }
+}
+
+.documentTitle, .documentBody {
+  opacity: 0;
+  left: 1em;
+}
+
+
+
+.showDocument {
+  opacity: 1;
+  transition: all 600ms;
+  left: 0em;
+}
+
+
+
+/*
+.showDocument{
+  -webkit-animation: 500ms linear 0s displayDocument;
+     -moz-animation: 500ms linear 0s displayDocument;
+       -o-animation: 500ms linear 0s displayDocument;
+          animation: 500ms linear 0s displayDocument;
+  opacity: 1;
+}
+*/
 
 .listOfReports{
   width: 30%;
@@ -90,9 +105,53 @@ body{
   padding-bottom: 2em;
   padding-top: 2em;
   border: none;
+  transition: all 300ms;
+}
+
+@keyframes reportHover {
+  0% {
+    background-color: transparent;
+  }
+  100% {
+    background-color: #b38600;
+  }
 }
 
 .listOfReports button:hover{
-  background-color: green;
+  /*background-color: rgb(35,181,159);*/
+  -webkit-animation: 100ms linear 0s reportHover;
+     -moz-animation: 100ms linear 0s reportHover;
+       -o-animation: 100ms linear 0s reportHover;
+          animation: 100ms linear 0s reportHover;
+  background-color: #b38600;
 }
 
+
+.banner {
+  position: relative;
+  /*background-image: -webkit-linear-gradient(0deg, rgb(0, 102, 102), rgb(0, 125, 124));*/
+  /*background-image: linear-gradient(0deg, rgb(0, 102, 102), rgb(0, 125, 124));*/
+  background-color: rgb(28, 85, 103);
+  color: rgba(235, 246, 250, 0.8);
+}
+
+
+.banner div {
+  display: inline-block;
+  height: 5em;
+  width: 100%;
+}
+.banner h1 {
+  width: 8.2em;
+  margin: 0.5em auto 0em auto;
+}
+
+.banner .filter {
+  position: absolute;
+  top: 70%;
+  height: 2em;
+  border: none;
+  border-radius: 2px;
+  margin-left: 2em;
+  width: 25%
+}

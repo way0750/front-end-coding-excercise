@@ -10,8 +10,47 @@
   overflow: scroll;
 }
 
+.documentDisplay > * {
+  position: relative;
+}
+
 .noCurReport{
   display: block;
   margin: 5em auto 0em auto;
   width: 50%;
 }
+
+@keyframes displayDocument {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+    left: 0em;
+  }
+}
+
+.documentTitle, .documentBody {
+  opacity: 0;
+  left: 1em;
+}
+
+
+
+.showDocument {
+  opacity: 1;
+  transition: all 600ms;
+  left: 0em;
+}
+
+
+
+/*
+.showDocument{
+  -webkit-animation: 500ms linear 0s displayDocument;
+     -moz-animation: 500ms linear 0s displayDocument;
+       -o-animation: 500ms linear 0s displayDocument;
+          animation: 500ms linear 0s displayDocument;
+  opacity: 1;
+}
+*/

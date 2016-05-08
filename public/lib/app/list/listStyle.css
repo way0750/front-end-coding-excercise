@@ -19,8 +19,23 @@
   padding-bottom: 2em;
   padding-top: 2em;
   border: none;
+  transition: all 300ms;
+}
+
+@keyframes reportHover {
+  0% {
+    background-color: transparent;
+  }
+  100% {
+    background-color: #b38600;
+  }
 }
 
 .listOfReports button:hover{
-  background-color: green;
+  /*background-color: rgb(35,181,159);*/
+  -webkit-animation: 100ms linear 0s reportHover;
+     -moz-animation: 100ms linear 0s reportHover;
+       -o-animation: 100ms linear 0s reportHover;
+          animation: 100ms linear 0s reportHover;
+  background-color: #b38600;
 }

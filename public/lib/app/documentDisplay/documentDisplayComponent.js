@@ -7,17 +7,33 @@ function mapStateToProps (reduxState) {
 }
 
 const DocumentDisplay = React.createClass({
-    
-  render () {
 
+  componentDidMount(){
+    // get the DOM element
+    // add class as a way to animate?
+    this.DOMNode = ReactDOM.findDOMNode(this);
+  },
+  componentDidUpdate(){
+    //doing these to animate report animation
+    let title = ReactDOM.findDOMNode(this.DOMNode.children[0]);
+    let body = ReactDOM.findDOMNode(this.DOMNode.children[1]);
+    title.className = 'documentTitle';
+    body.className = 'documentBody';
+    setTimeout( () => {
+      title.className = 'showDocument';
+      body.className = 'showDocument';
+    }, 20)
+  },
+  render () {
+    console.log('documentDisplay')
     if (this.props.curReport.body === undefined) {
       return (<div className="documentDisplay">
           <h1 className="noCurReport">{this.props.curReport.title}</h1>
         </div>)
     } else {
       return (<div className="documentDisplay">
-        <h1>{this.props.curReport.title}</h1>
-        {this.props.curReport.body}
+        <h1 className="documentTitle">{this.props.curReport.title}</h1>
+        <div className="documentBody">{this.props.curReport.body}</div>
         </div>);
     }
   }  

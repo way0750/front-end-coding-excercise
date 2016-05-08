@@ -1,6 +1,6 @@
 :root {
-  background-image: -webkit-linear-gradient(0deg,#4589fb, #1b437a);
-  background-image: linear-gradient(0deg, #4589fb, #1b437a);
+  background-image: -webkit-linear-gradient(0deg,#4589fb, rgb(17, 44, 85));
+  background-image: linear-gradient(0deg, #4589fb, rgb(17, 44, 85));
   height: 100%;
   font-family: sans-serif;
 }
@@ -17,7 +17,7 @@ body{
   width: 80%;
   height: 35em;
   border-radius: 1px;
-  box-shadow: 0em 0em 0.5em 0em #1b437a;
+  box-shadow: 0em 0em 0.5em 0em rgb(17, 44, 85);
   margin: auto;
   margin-top: 2em;
 }
@@ -25,28 +25,4 @@ body{
 .logo{
   background-position: 100% 100%;
   background-repeat: no-repeat;
-}
-
-.banner {
-  position: relative;
-}
-
-.banner div {
-  display: inline-block;
-  height: 5em;
-  width: 100%;
-}
-.banner h1 {
-  width: 8.2em;
-  margin: 0.5em auto 0em auto;
-}
-
-.banner .filter {
-  position: absolute;
-  top: 70%;
-  height: 2em;
-  border: none;
-  border-radius: 2px;
-  margin-left: 2em;
-  width: 25%
 }

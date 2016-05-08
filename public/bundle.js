@@ -6179,13 +6179,13 @@ ReactDOM.render(React.createElement(
 // );
 
 },{"./documentDisplay/documentDisplayComponent.js":74,"./list/listComponent.js":75,"./reducers/index.js":77,"./searchBar/searchBarComponent.js":80,"axios":1,"react-redux":36,"redux":69}],74:[function(require,module,exports){
-"use strict";
+'use strict';
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _reactRedux = require("react-redux");
+var _reactRedux = require('react-redux');
 
 function mapStateToProps(reduxState) {
   return {
@@ -6194,29 +6194,49 @@ function mapStateToProps(reduxState) {
 }
 
 var DocumentDisplay = React.createClass({
-  displayName: "DocumentDisplay",
+  displayName: 'DocumentDisplay',
+  componentDidMount: function componentDidMount() {
+    // get the DOM element
+    // add class as a way to animate?
+    this.DOMNode = ReactDOM.findDOMNode(this);
+  },
+  componentDidUpdate: function componentDidUpdate() {
+    //doing these to animate report animation
+    var title = ReactDOM.findDOMNode(this.DOMNode.children[0]);
+    var body = ReactDOM.findDOMNode(this.DOMNode.children[1]);
+    title.className = 'documentTitle';
+    body.className = 'documentBody';
+    setTimeout(function () {
+      title.className = 'showDocument';
+      body.className = 'showDocument';
+    }, 20);
+  },
   render: function render() {
-
+    console.log('documentDisplay');
     if (this.props.curReport.body === undefined) {
       return React.createElement(
-        "div",
-        { className: "documentDisplay" },
+        'div',
+        { className: 'documentDisplay' },
         React.createElement(
-          "h1",
-          { className: "noCurReport" },
+          'h1',
+          { className: 'noCurReport' },
           this.props.curReport.title
         )
       );
     } else {
       return React.createElement(
-        "div",
-        { className: "documentDisplay" },
+        'div',
+        { className: 'documentDisplay' },
         React.createElement(
-          "h1",
-          null,
+          'h1',
+          { className: 'documentTitle' },
           this.props.curReport.title
         ),
-        this.props.curReport.body
+        React.createElement(
+          'div',
+          { className: 'documentBody' },
+          this.props.curReport.body
+        )
       );
     }
   }
