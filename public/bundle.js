@@ -6224,15 +6224,26 @@ var _reactRedux = require('react-redux');
 
 var List = React.createClass({
   displayName: 'List',
+  makeFilterRegExp: function makeFilterRegExp(str) {
+    var escapedInputString = str.replace(/\W/g, function (match) {
+      return "\\" + match;
+    });
+    var filterRegExp = new RegExp(escapedInputString, 'i');
+    console.log(filterRegExp);
+    return filterRegExp;
+  },
   makeList: function makeList() {
     var _this = this;
 
-    var reportsArr = this.props.reports;
+    var filterRegExp = this.makeFilterRegExp(this.props.reportFilter);
+    var reportsArr = this.props.reports.filter(function (reportObj) {
+      return filterRegExp.test(reportObj.title);
+    });
 
     reportsArr.forEach(function (reportObj) {
       var time = new Date(reportObj.created);
       reportObj.created = time;
-      reportObj.title = time.getTime() + reportObj.title;
+      // reportObj.title = time.getTime() + reportObj.title;
     });
 
     reportsArr = reportsArr.sort(function (reportObj1, reportObj2) {
@@ -6263,7 +6274,8 @@ var List = React.createClass({
 
 function mapStateToProps(reduxState) {
   return {
-    reports: reduxState.reports
+    reports: reduxState.reports,
+    reportFilter: reduxState.reportFilter
   };
 }
 
@@ -6344,7 +6356,7 @@ exports.default = function (previousState, action) {
   if (action.type === 'updateFilter') {
     return action.payload;
   } else {
-    return previousState === undefined ? 'wtf?' : previousState;
+    return previousState === undefined ? '' : previousState;
   }
 };
 
