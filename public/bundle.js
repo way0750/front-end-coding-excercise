@@ -6093,6 +6093,10 @@ var _index = require('./reducers/index.js');
 
 var _index2 = _interopRequireDefault(_index);
 
+var _searchBarComponent = require('./searchBar/searchBarComponent.js');
+
+var _searchBarComponent2 = _interopRequireDefault(_searchBarComponent);
+
 var _listComponent = require('./list/listComponent.js');
 
 var _listComponent2 = _interopRequireDefault(_listComponent);
@@ -6108,9 +6112,6 @@ var _axios2 = _interopRequireDefault(_axios);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var store = (0, _redux.createStore)(_index2.default);
-
-// import searchBar
-
 
 var App = React.createClass({
   displayName: 'App',
@@ -6128,8 +6129,12 @@ var App = React.createClass({
       React.createElement(
         'header',
         null,
-        React.createElement('input', { className: 'filter' }),
-        ' filter and stuff here'
+        React.createElement(
+          'h1',
+          null,
+          'reports: '
+        ),
+        React.createElement(_searchBarComponent2.default, null)
       ),
       React.createElement(
         'div',
@@ -6173,7 +6178,7 @@ ReactDOM.render(React.createElement(
 //   document.getElementById('app')
 // );
 
-},{"./documentDisplay/documentDisplayComponent.js":74,"./list/listComponent.js":75,"./reducers/index.js":77,"axios":1,"react-redux":36,"redux":69}],74:[function(require,module,exports){
+},{"./documentDisplay/documentDisplayComponent.js":74,"./list/listComponent.js":75,"./reducers/index.js":77,"./searchBar/searchBarComponent.js":80,"axios":1,"react-redux":36,"redux":69}],74:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -6335,10 +6340,11 @@ Object.defineProperty(exports, "__esModule", {
 });
 
 exports.default = function (previousState, action) {
+  console.log('new filter?', action);
   if (action.type === 'updateFilter') {
     return action.payload;
   } else {
-    return previousState === undefined ? '' : previousState;
+    return previousState === undefined ? 'wtf?' : previousState;
   }
 };
 
@@ -6365,6 +6371,10 @@ exports.default = function (previousState, action) {
 },{}],80:[function(require,module,exports){
 'use strict';
 
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
 var _redux = require('redux');
 
 var _reactRedux = require('react-redux');
@@ -6372,15 +6382,16 @@ var _reactRedux = require('react-redux');
 var ReportFilter = React.createClass({
   displayName: 'ReportFilter',
   render: function render() {
-    return React.createElement('input', { placeholder: 'enter filter here' });
+    var _this = this;
+
+    return React.createElement('input', {
+      placeholder: 'enter filter here',
+      onChange: function onChange(event) {
+        _this.props.updateFilter(event.target.value);
+      }
+    });
   }
 });
-
-function mapStateToProps(reduxState) {
-  return {
-    reportFilter: reduxState.reportFilter
-  };
-}
 
 function updateFilter(string) {
   return {
@@ -6391,12 +6402,10 @@ function updateFilter(string) {
 
 function mapDispatchToProps(dispatch) {
   return (0, _redux.bindActionCreators)({
-    propName: updateFilter
+    updateFilter: updateFilter
   }, dispatch);
 }
 
-// export default connect(mapStateToProps, mapDispatchToProps)(List);
-
-// export default connect(mapStateToProps)(List);
+exports.default = (0, _reactRedux.connect)(null, mapDispatchToProps)(ReportFilter);
 
 },{"react-redux":36,"redux":69}]},{},[73,74,75,76,77,78,79,80]);

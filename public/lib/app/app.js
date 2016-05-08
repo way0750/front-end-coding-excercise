@@ -7,7 +7,7 @@ import reducers from './reducers/index.js';
 
 let store = createStore(reducers);
 
-// import searchBar
+import SearchBar from './searchBar/searchBarComponent.js'
 import List from './list/listComponent.js';
 import DocumentDisplay from './documentDisplay/documentDisplayComponent.js'
 
@@ -25,7 +25,8 @@ const App = React.createClass({
     return (
       <div className='appView'>
         <header>
-          <input className="filter" /> filter and stuff here
+        <h1>reports: </h1>
+          <SearchBar />
         </header>
 
         <div>
@@ -33,7 +34,6 @@ const App = React.createClass({
           <List className="listOfReports" />
 
           <DocumentDisplay className="documentDisplay" />
-
         </div>
 
       </div>

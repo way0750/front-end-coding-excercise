@@ -5,16 +5,15 @@ import {connect} from 'react-redux';
 const ReportFilter = React.createClass({
   render(){
     return (
-      <input placeholder="enter filter here"/>
+      <input 
+        placeholder="enter filter here"
+        onChange={ (event) => {
+          this.props.updateFilter(event.target.value)
+        }}
+      />
       )
   }
 });
-
-function mapStateToProps (reduxState) {
-  return {
-    reportFilter: reduxState.reportFilter
-  };
-}
 
 function updateFilter(string) {
   return {
@@ -25,10 +24,8 @@ function updateFilter(string) {
 
 function mapDispatchToProps (dispatch) {
   return bindActionCreators({ 
-    propName: updateFilter
+    updateFilter: updateFilter
   }, dispatch );
 }
 
-// export default connect(mapStateToProps, mapDispatchToProps)(List);
-
-// export default connect(mapStateToProps)(List);
+export default connect(null, mapDispatchToProps)(ReportFilter);
